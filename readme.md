@@ -18,6 +18,17 @@ This module contains a variety of helpful resources, including:
 Get started at [spinningup.openai.com](https://spinningup.openai.com)!
 
 
+Changes made to this repository for my (Nathaniel Hamilton) experiments
+=======================================================================
+
+__Added:__ 
+* `environments`: additional gym environments I use
+* `examples/stl-gym`: a number of examples using my [stl-gym](https://github.com/nphamilton/stl-gym) repository
+
+__Modified:__
+* _still in process of modifying files to add better evaluations_
+
+
 Citing Spinning Up
 ------------------
 
