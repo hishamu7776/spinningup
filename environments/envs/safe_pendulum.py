@@ -176,7 +176,7 @@ class SafePendulumEnv(gym.Env):
         reward = self.calculate_reward(newth, newthdot, safe_u, intervening_bool)
         
         info = {'intervening': intervening_bool, 'action taken': safe_u, 
-                'sim r': sim_r, 'sim o2': sim_o2, 'sim d': sim_d}
+                'sim r': sim_r, 'sim o2': sim_o2, 'sim d': sim_d, 'theta': newth}
 
         return self._get_obs(), reward, done, info
 

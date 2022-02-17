@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torch.optim import Adam
 import gym
+from gym.spaces import Tuple
 import time
 import spinup.algos.pytorch.ppo.core as core
 from spinup.utils.logx import EpochLogger
@@ -85,9 +86,9 @@ class PPOBuffer:
 
 
 
-def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0, 
+def ppo(env_fn, test_env_fn=None, alt_test_env_fn=None, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0, 
         steps_per_epoch=4000, epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4,
-        vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.97, max_ep_len=1000,
+        vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.97, num_test_episodes=10, max_ep_len=1000,
         target_kl=0.01, logger_kwargs=dict(), save_freq=10):
     """
     Proximal Policy Optimization (by clipping), 
@@ -95,7 +96,13 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     with early stopping based on approximate KL
 
     Args:
-        env_fn : A function which creates a copy of the environment.
+        env_fn: A function which creates a copy of the environment for training the agent.
+            The environment must satisfy the OpenAI Gym API.
+        
+        test_env_fn: (optional) A function which creates a copy of the environment for testing the agent.
+            The environment must satisfy the OpenAI Gym API.
+
+        alt_test_env_fn: (optional) A function which creates a copy of a different environment for testing the agent.
             The environment must satisfy the OpenAI Gym API.
 
         actor_critic: The constructor method for a PyTorch Module with a 
@@ -179,6 +186,9 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         lam (float): Lambda for GAE-Lambda. (Always between 0 and 1,
             close to 1.)
 
+        num_test_episodes (int): Number of episodes to test the deterministic
+            policy at the end of each epoch.
+
         max_ep_len (int): Maximum length of trajectory / episode / rollout.
 
         target_kl (float): Roughly what KL divergence we think is appropriate
@@ -193,21 +203,34 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     """
 
     # Special function to avoid certain slowdowns from PyTorch + MPI combo.
-    setup_pytorch_for_mpi()
+    # setup_pytorch_for_mpi()
 
     # Set up logger and save configuration
     logger = EpochLogger(**logger_kwargs)
     logger.save_config(locals())
 
     # Random seed
-    seed += 10000 * proc_id()
     torch.manual_seed(seed)
     np.random.seed(seed)
 
     # Instantiate environment
     env = env_fn()
     obs_dim = env.observation_space.shape
-    act_dim = env.action_space.shape
+    
+    
+    ###################################################################################################################
+    # Change to allow Tuple action spaces
+    if isinstance(env.action_space, Tuple):
+        act_dim = len(env.action_space)
+    else:
+        act_dim = env.action_space.shape
+    ###################################################################################################################
+
+    ###################################################################################################################
+    # Additional environments for better testing/evaluation
+    test_env = env_fn() if test_env_fn is None else test_env_fn()
+    alt_test_env = None if alt_test_env_fn is None else alt_test_env_fn()
+    ###################################################################################################################
 
     # Create actor-critic module
     ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs)
@@ -270,7 +293,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
                 logger.log('Early stopping at step %d due to reaching max kl.'%i)
                 break
             loss_pi.backward()
-            mpi_avg_grads(ac.pi)    # average grads across MPI processes
+            # mpi_avg_grads(ac.pi)    # average grads across MPI processes
             pi_optimizer.step()
 
         logger.store(StopIter=i)
@@ -280,7 +303,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             vf_optimizer.zero_grad()
             loss_v = compute_loss_v(data)
             loss_v.backward()
-            mpi_avg_grads(ac.v)    # average grads across MPI processes
+            # mpi_avg_grads(ac.v)    # average grads across MPI processes
             vf_optimizer.step()
 
         # Log changes from update
@@ -289,6 +312,37 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
                      KL=kl, Entropy=ent, ClipFrac=cf,
                      DeltaLossPi=(loss_pi.item() - pi_l_old),
                      DeltaLossV=(loss_v.item() - v_l_old))
+
+    def get_action(o):
+        return ac.act(torch.as_tensor(o, dtype=torch.float32))
+
+    def test_agent():
+        for j in range(num_test_episodes):
+            o, d, ep_ret, ep_len = test_env.reset(), False, 0, 0
+            while not (d or (ep_len == max_ep_len)):
+                # Take deterministic actions at test time 
+                o, r, d, env_info = test_env.step(get_action(o))
+                ep_ret += r
+                ep_len += 1
+            if 'success' in env_info:
+                success = 1 if env_info['success'] else 0
+                logger.store(TestEpRet=ep_ret, TestEpLen=ep_len, Success=success)
+            else:
+                logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
+
+    def test_agent_alt():
+        for j in range(num_test_episodes):
+            o, d, ep_ret, ep_len = alt_test_env.reset(), False, 0, 0
+            while not (d or (ep_len == max_ep_len)):
+                # Take deterministic actions at test time
+                o, r, d, env_info = alt_test_env.step(get_action(o))
+                ep_ret += r
+                ep_len += 1
+            if 'success' in env_info:
+                success = 1 if env_info['success'] else 0
+                logger.store(AltTestEpRet=ep_ret, AltTestEpLen=ep_len, AltSuccess=success)
+            else:
+                logger.store(AltTestEpRet=ep_ret, AltTestEpLen=ep_len)
 
     # Prepare for interaction with environment
     start_time = time.time()
@@ -336,11 +390,18 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         # Perform PPO update!
         update()
 
+        # Test the performance of the deterministic version of the agent.
+        test_agent()
+
         # Log info about epoch
         logger.log_tabular('Epoch', epoch)
         logger.log_tabular('EpRet', with_min_and_max=True)
+        logger.log_tabular('TestEpRet', with_min_and_max=True)
         logger.log_tabular('EpLen', average_only=True)
+        logger.log_tabular('TestEpLen', average_only=True)
         logger.log_tabular('VVals', with_min_and_max=True)
+        if 'Success' in logger.epoch_dict:
+            logger.log_tabular('Success', average_only=True)
         logger.log_tabular('TotalEnvInteracts', (epoch+1)*steps_per_epoch)
         logger.log_tabular('LossPi', average_only=True)
         logger.log_tabular('LossV', average_only=True)
@@ -351,12 +412,22 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         logger.log_tabular('ClipFrac', average_only=True)
         logger.log_tabular('StopIter', average_only=True)
         logger.log_tabular('Time', time.time()-start_time)
+
+        # Test the performance of the deterministic agent on an alternate environment if provided and log the results
+        if alt_test_env is not None:
+            test_agent_alt()
+            logger.log_tabular('AltTestEpRet', with_min_and_max=True)
+            logger.log_tabular('AltTestEpLen', average_only=True)
+            if 'AltSuccess' in logger.epoch_dict:
+                logger.log_tabular('AltSuccess', average_only=True)
+        
+        # Print logger info to see improvements
         logger.dump_tabular()
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default='HalfCheetah-v2')
+    parser.add_argument('--env', type=str, default='Pendulum-v0')
     parser.add_argument('--hid', type=int, default=64)
     parser.add_argument('--l', type=int, default=2)
     parser.add_argument('--gamma', type=float, default=0.99)
@@ -367,7 +438,7 @@ if __name__ == '__main__':
     parser.add_argument('--exp_name', type=str, default='ppo')
     args = parser.parse_args()
 
-    mpi_fork(args.cpu)  # run parallel code with mpi
+    # mpi_fork(args.cpu)  # run parallel code with mpi
 
     from spinup.utils.run_utils import setup_logger_kwargs
     logger_kwargs = setup_logger_kwargs(args.exp_name, args.seed)
