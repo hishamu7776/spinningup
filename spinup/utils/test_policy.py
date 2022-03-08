@@ -4,6 +4,7 @@ import os
 import os.path as osp
 import tensorflow as tf
 import torch
+import pandas as pd
 from spinup import EpochLogger
 from spinup.utils.logx import restore_tf_graph
 
@@ -135,6 +136,80 @@ def run_policy(env, get_action, max_ep_len=None, num_episodes=100, render=True):
     logger.log_tabular('EpRet', with_min_and_max=True)
     logger.log_tabular('EpLen', average_only=True)
     logger.dump_tabular()
+
+def evaluate_policy_in_2_environments(env1, env2, get_action, log_dest='.', max_ep_len=None, num_episodes=100, render=False):
+    """
+    This function evaluates the policy in 2 different environments and records the results in comparative_results.csv.
+
+    Args:
+        env1 (gym.core.Env):    One of the Gym environments the policy will be evaluated in.
+        env2 (gym.core.Env):    The other Gym environment the policy will be evaluated in.
+        get_action (function):  Function representing the policy being evaluated. Create using the load_*_policy functions above.
+        log_dest (str):         Path to folder where results will be saved.
+        max_ep_len (int):       Maximum length for an evaluation episode. If None, the default for the environment will be used.
+        num_episodes (int):     The number of times the evaluation will be run in each environment.
+        render (bool):          Boolean value indicating whether or not the environment should be rendered during the evaluations. Default is False, i.e. do not render.
+    Returns:
+        None
+    """
+
+    assert env1 is not None, \
+        "First environment not found!\n\n It looks like the environment wasn't saved, " + \
+        "and we can't run the agent in it. :( \n\n Check out the readthedocs " + \
+        "page on Experiment Outputs for how to handle this situation."
+    
+    assert env2 is not None, \
+        "Second environment not found!\n\n It looks like the environment wasn't saved, " + \
+        "and we can't run the agent in it. :( \n\n Check out the readthedocs " + \
+        "page on Experiment Outputs for how to handle this situation."
+
+    episodes = range(num_episodes)
+    returns1 = []
+    lengths1 = []
+    dones1 = []
+    returns2 = []
+    lengths2 = []
+    dones2 = []
+
+    for ep in episodes:
+        # Evaluate in environment 1
+        o, r, done_int, ep_ret, ep_len = env1.reset(), 0, 0, 0, 0
+        while ep_len < max_ep_len:
+            a = get_action(o)
+            o, r, d, env_info = env1.step(a)
+            ep_ret += r
+            ep_len += 1
+            if d:
+                done_int = 1
+                break
+
+        # Record the data
+        print(f'Env1 episode {ep}: \t Return {ep_ret} \t Length {ep_len}  \t Done {d}')
+        returns1.append(ep_ret)
+        lengths1.append(ep_len)
+        dones1.append(done_int)
+
+        # Evaluate in environment 2
+        o, r, done_int, ep_ret, ep_len = env2.reset(), 0, 0, 0, 0
+        while ep_len < max_ep_len:
+            a = get_action(o)
+            o, r, d, env_info = env2.step(a)
+            ep_ret += r
+            ep_len += 1
+            if d:
+                done_int = 1
+                break
+
+        # Record the data
+        print(f'Env2 episode {ep}: \t Return {ep_ret} \t Length {ep_len}  \t Done {d}')
+        returns2.append(ep_ret)
+        lengths2.append(ep_len)
+        dones2.append(done_int)
+    
+    # Log the results in a .csv file header is ['index', 'Episode', 'EpRet1', 'EpLen1', 'Done1', 'EpRet2', 'EpLen2', 'Done2']
+    dict = {'Episode': episodes, 'EpRet1': returns1, 'EpLen1': lengths1, 'Done1': dones1, 'EpRet2': returns2, 'EpLen2': lengths2, 'Done2': dones2}
+    df = pd.DataFrame(dict, index=dict['Episode'])
+    df.to_csv(log_dest + '/evaluation.csv')
 
 
 if __name__ == '__main__':
