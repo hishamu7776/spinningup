@@ -217,7 +217,6 @@ def ppo(env_fn, test_env_fn=None, alt_test_env_fn=None, actor_critic=core.MLPAct
     env = env_fn()
     obs_dim = env.observation_space.shape
     
-    
     ###################################################################################################################
     # Change to allow Tuple action spaces
     if isinstance(env.action_space, Tuple):
@@ -232,7 +231,7 @@ def ppo(env_fn, test_env_fn=None, alt_test_env_fn=None, actor_critic=core.MLPAct
     alt_test_env = None if alt_test_env_fn is None else alt_test_env_fn()
     ###################################################################################################################
 
-    # Create actor-critic module
+    # Create actor-critic module TODO: add load here ac = torch.load(fname)
     ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs)
 
     # Sync params across processes
