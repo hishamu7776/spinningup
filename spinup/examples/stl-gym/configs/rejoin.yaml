@@ -1,0 +1,41 @@
+constants:
+    - name: crash_thresh
+      type: float
+      value: 0.20943951023
+    - name: rejoin_thresh
+      type: float
+      value: 0.0349066
+variables:
+    - name: x_lead_wing
+      type: float
+      location: obs
+      identifier: 0
+    - name: y_lead_wing
+      type: float
+      location: obs
+      identifier: 1
+    - name: z_lead_wing
+      type: float
+      location: obs
+      identifier: 2
+    - name: x_rejoin_wing
+      type: float
+      location: obs
+      identifier: 3
+    - name: y_rejoin_wing
+      type: float
+      location: obs
+      identifier: 4
+    - name: z_rejoin_wing
+      type: float
+      location: obs
+      identifier: 5
+specifications:
+    - name: collision
+      descriptor: 
+      spec: collision = always((abs(x_lead_wing) >= crash_thresh) and (abs(y_lead_wing) >= crash_thresh) and (abs(z_lead_wing) >= crash_thresh))
+      weight: 1.0
+    - name: rejoin
+      descriptor: 
+      spec: rejoin = eventually(always((abs(x_rejoin_wing) <= rejoin_thresh) and (abs(y_rejoin_wing) <= rejoin_thresh) and (abs(z_rejoin_wing) <= rejoin_thresh)))
+      weight: 1.0

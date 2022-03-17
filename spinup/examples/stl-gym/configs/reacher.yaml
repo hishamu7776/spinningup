@@ -1,0 +1,15 @@
+env_name: Reacher-v2
+constants:
+    - name: epsilon
+      type: float
+      value: 0.1
+variables:
+    - name: dist
+      type: float
+      location: info
+      identifier: reward_dist
+specifications:
+    - name: goal
+      descriptor: fingertip repeatedly reaches the goal point
+      spec: always(eventually(abs(dist) <= epsilon))
+      weight: 1.0
