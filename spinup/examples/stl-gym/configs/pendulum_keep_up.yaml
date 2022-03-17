@@ -1,11 +1,11 @@
 env_name: InvPendulum-v0
 constants:
-    - name: thresh
+    - name: theta_thresh
       type: float
       value: 1.0
-    - name: thresh_n
+    - name: omega_thresh
       type: float
-      value:  -1.0
+      value:  10.0
 variables:
     - name: omega
       type: float
@@ -18,5 +18,5 @@ variables:
 specifications:
     - name: task
       descriptor: Keep the pendulum angle within 1 radian with an angular velocity under +-10 rad/s
-      spec: task = always((theta <= thresh) and (theta >= thresh_n) and (omega <= 10.0) and (omega >= -10.0))
+      spec: task = always((abs(theta) <= theta_thresh) and (abs(omega) <= omega_thresh))
       weight: 1.0
