@@ -89,7 +89,7 @@ class PPOBuffer:
 def ppo(env_fn, test_env_fn=None, alt_test_env_fn=None, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0, 
         steps_per_epoch=4000, epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4,
         vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.97, num_test_episodes=10, max_ep_len=1000,
-        target_kl=0.01, logger_kwargs=dict(), save_freq=10):
+        target_kl=0.01, logger_kwargs=dict(), load_model=None, save_freq=10):
     """
     Proximal Policy Optimization (by clipping), 
 
@@ -197,6 +197,8 @@ def ppo(env_fn, test_env_fn=None, alt_test_env_fn=None, actor_critic=core.MLPAct
 
         logger_kwargs (dict): Keyword args for EpochLogger.
 
+        load_model (str): file name for model to be loaded.  Must be torch model with .pth.
+
         save_freq (int): How often (in terms of gap between epochs) to save
             the current policy and value function.
 
@@ -231,8 +233,13 @@ def ppo(env_fn, test_env_fn=None, alt_test_env_fn=None, actor_critic=core.MLPAct
     alt_test_env = None if alt_test_env_fn is None else alt_test_env_fn()
     ###################################################################################################################
 
-    # Create actor-critic module TODO: add load here ac = torch.load(fname)
-    ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs)
+    ###################################################################################################################
+    # Create actor-critic module
+    if load_model is not None:
+        ac = torch.load(load_model)
+    else:
+        ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs)
+    ###################################################################################################################
 
     # Sync params across processes
     sync_params(ac)
