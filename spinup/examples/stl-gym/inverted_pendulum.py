@@ -20,7 +20,7 @@ from functools import partial
 from spinup import ppo_pytorch as ppo
 from spinup.utils.test_policy import *
 from spinup.utils.plot import *
-# from spinup.utils.tables import *
+from spinup.utils.tables import *
 
 # environment libraries
 import stlgym
