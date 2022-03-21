@@ -1,4 +1,4 @@
-env_name: InvPendulum-v0
+env_name: Pendulum-v1
 constants:
     - name: theta_thresh
       type: float

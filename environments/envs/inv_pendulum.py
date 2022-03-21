@@ -1,5 +1,5 @@
 """
-File: pendulum.py
+File: inv_pendulum.py
 Author: Nathaniel Hamilton modified code from 
         https://github.com/openai/gym/blob/master/gym/envs/classic_control/pendulum.py
 
@@ -14,23 +14,27 @@ import numpy as np
 from os import path
 
 
-class PendulumEnv(gym.Env):
+class InvPendulumEnv(gym.Env):
     metadata = {
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second': 30
     }
 
-    def __init__(self, g=10.0):
+    def __init__(self, g=10.0, unsafe_angle=1.0, reward_style=1):
         """
         TODO: define input variables
+        :reward_style: (int) value determining the reward style for training in the 
+                             environment; 0 is minimizing cost, 1 is maximizing reward
         """
-        self.max_speed = 8.0
-        self.max_torque = 2.0
+        self.max_speed = 60.0
+        self.max_torque = 15.0
         self.dt = .05
         self.g = g
         self.m = 1.
         self.l = 1.
         self.viewer = None
+        self.unsafe_angle = unsafe_angle
+        self.reward_style = reward_style
 
         high = np.array([1., 1., self.max_speed], dtype=np.float32)
         self.action_space = spaces.Box(
@@ -52,7 +56,11 @@ class PendulumEnv(gym.Env):
         """
         costs = angle_normalize(theta) ** 2 + .1 * thetadot ** 2 + .001 * (action ** 2)
 
-        reward = -costs
+        # adjust the reward value depending on the reward style
+        if self.reward_style == 1:
+            reward = 5 - costs
+        else:
+            reward = -costs
         
         return reward
 
@@ -78,12 +86,16 @@ class PendulumEnv(gym.Env):
 
         self.state = np.array([newth, newthdot])
 
+        # terminate the episode if the safety condition is violated
+        if abs(newth) > self.unsafe_angle:
+            done = True
+
         reward = self.calculate_reward(newth, newthdot, u)
 
         return self._get_obs(), reward, done, {'theta': newth}
 
     def reset(self):
-        high = np.array([np.pi, 1])  # pendulum starts between +-90 and speed +-1 rad/s
+        high = np.array([0.8, 1.0])  # Pendulum starts +-46 degrees and +-1.0 rad/s
         self.state = self.np_random.uniform(low=-high, high=high)
         self.last_u = None
         return self._get_obs()
