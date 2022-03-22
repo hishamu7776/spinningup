@@ -84,7 +84,7 @@ if __name__ == "__main__":
     # Experiment names for plotting
     exp1_name = "baseline"
     exp2_name = "stl"
-    exp3_name = "re-stl"
+    exp3_name = "re_train"
     plot_legend = [exp1_name, exp2_name, exp3_name]
 
     if args['train_all']:
@@ -96,8 +96,8 @@ if __name__ == "__main__":
     # Baseline performance
     if args['baseline']:
         for i in range(len(random_seeds)):
-            env_fn = partial(gym.make, 'InvPendulum-v0')
-            test_env_fn = partial(gym.make, 'InvPendulum-v0')
+            env_fn = partial(gym.make, 'Pendulum-v1')
+            test_env_fn = partial(gym.make, 'Pendulum-v1')
             alt_test_env_fn = partial(stlgym.make, stl_env_config)
             log_dest = log_directory + "baseline/rand_seed_" + str(random_seeds[i])
             logger_kwargs = dict(output_dir=log_dest, exp_name=exp1_name)
@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
             # After the policy is trained, evaluate it for a given number of steps
             env, get_action = load_policy_and_env(fpath=log_dest, itr='last', deterministic=True)
-            original_env = gym.make('InvPendulum-v0')
+            original_env = gym.make('Pendulum-v1')
             stl_env = stlgym.make(stl_env_config)
             evaluate_policy_in_2_environments(env1=original_env, env2=stl_env, get_action=get_action, log_dest=log_dest, max_ep_len=200, num_episodes=num_evals)
 
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     if args['stl']:
         for i in range(len(random_seeds)):
             env_fn = partial(stlgym.make, stl_env_config)
-            test_env_fn = partial(gym.make, 'InvPendulum-v0')
+            test_env_fn = partial(gym.make, 'Pendulum-v1')
             alt_test_env_fn = partial(stlgym.make, stl_env_config)
             log_dest = log_directory + "stl/rand_seed_" + str(random_seeds[i])
             logger_kwargs = dict(output_dir=log_dest, exp_name=exp1_name)
@@ -129,7 +129,7 @@ if __name__ == "__main__":
 
             # After the policy is trained, evaluate it for a given number of steps
             env, get_action = load_policy_and_env(fpath=log_dest, itr='last', deterministic=True)
-            original_env = gym.make('InvPendulum-v0')
+            original_env = gym.make('Pendulum-v1')
             stl_env = stlgym.make(stl_env_config)
             evaluate_policy_in_2_environments(env1=original_env, env2=stl_env, get_action=get_action, log_dest=log_dest, max_ep_len=200, num_episodes=num_evals)
 
@@ -137,9 +137,9 @@ if __name__ == "__main__":
     if args['re_stl']:
         for i in range(len(random_seeds)):
             env_fn = partial(stlgym.make, stl_env_config)
-            test_env_fn = partial(gym.make, 'InvPendulum-v0')
+            test_env_fn = partial(gym.make, 'Pendulum-v1')
             alt_test_env_fn = partial(stlgym.make, stl_env_config)
-            log_dest = log_directory + "re_stl/rand_seed_" + str(random_seeds[i])
+            log_dest = log_directory + "re_train/rand_seed_" + str(random_seeds[i])
             logger_kwargs = dict(output_dir=log_dest, exp_name=exp1_name)
             print(f"Training PPO re-stl, random seed: {random_seeds[i]}...")
             ppo(env_fn, test_env_fn=test_env_fn, alt_test_env_fn=alt_test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
             # After the policy is trained, evaluate it for a given number of steps
             env, get_action = load_policy_and_env(fpath=log_dest, itr='last', deterministic=True)
-            original_env = gym.make('InvPendulum-v0')
+            original_env = gym.make('Pendulum-v1')
             stl_env = stlgym.make(stl_env_config)
             evaluate_policy_in_2_environments(env1=original_env, env2=stl_env, get_action=get_action, log_dest=log_dest, max_ep_len=200, num_episodes=num_evals)
     
@@ -158,16 +158,20 @@ if __name__ == "__main__":
         for i in range(len(plot_legend)):
             log_dirs.append(log_directory + plot_legend[i])
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageTestEpRet'],
-                   ylim=(0, 1100), count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                #    ylim=(0, 1100), 
+                count=False, smooth=1, select=None, exclude=None, estimator='mean')
 
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageAltTestEpRet'],
-                   ylim=(0, 1100), count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                #    ylim=(0, 1100), 
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
 
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['TestEpLen'],
-                   ylim=(0, 240), count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                #    ylim=(0, 240), 
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
 
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AltTestEpLen'],
-                   ylim=(0, 240), count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                #    ylim=(0, 240), 
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
 
     if args['table']:
         log_dirs = []
