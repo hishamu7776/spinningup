@@ -4,12 +4,12 @@ constants:
       type: float
       value: 0.1
 variables:
-    - name: dist
+    - name: distance
       type: float
       location: info
       identifier: reward_dist
 specifications:
     - name: goal
       descriptor: fingertip repeatedly reaches the goal point
-      spec: always(eventually(abs(dist) <= epsilon))
+      spec: always(eventually(abs(distance) <= epsilon))
       weight: 1.0

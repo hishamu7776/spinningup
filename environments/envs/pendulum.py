@@ -80,7 +80,7 @@ class PendulumEnv(gym.Env):
 
         reward = self.calculate_reward(newth, newthdot, u)
 
-        return self._get_obs(), reward, done, {'theta': newth}
+        return self._get_obs(), reward, done, {'theta': angle_normalize(newth)}
 
     def reset(self):
         high = np.array([np.pi, 1])  # pendulum starts between +-90 and speed +-1 rad/s

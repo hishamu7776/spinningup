@@ -140,12 +140,13 @@ if __name__ == "__main__":
             test_env_fn = partial(gym.make, 'Pendulum-v1')
             alt_test_env_fn = partial(stlgym.make, stl_env_config)
             log_dest = log_directory + "re_train/rand_seed_" + str(random_seeds[i])
+            load_path = log_directory + "baseline/rand_seed_" + str(random_seeds[i]) + "/pyt_save/model.pt"
             logger_kwargs = dict(output_dir=log_dest, exp_name=exp1_name)
             print(f"Training PPO re-stl, random seed: {random_seeds[i]}...")
             ppo(env_fn, test_env_fn=test_env_fn, alt_test_env_fn=alt_test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
                 steps_per_epoch=steps_per_epoch, epochs=epochs, gamma=gamma, clip_ratio=clip_ratio, pi_lr=pi_lr,
                 vf_lr=vf_lr, train_pi_iters=train_pi_iters, train_v_iters=train_v_iters, lam=lam, num_test_episodes=num_test_episodes, 
-                max_ep_len=max_ep_len, target_kl=target_kl, logger_kwargs=logger_kwargs, save_freq=save_freq)
+                max_ep_len=max_ep_len, target_kl=target_kl, logger_kwargs=logger_kwargs, save_freq=save_freq, load_model=load_path)
 
             # After the policy is trained, evaluate it for a given number of steps
             env, get_action = load_policy_and_env(fpath=log_dest, itr='last', deterministic=True)
@@ -154,24 +155,25 @@ if __name__ == "__main__":
             evaluate_policy_in_2_environments(env1=original_env, env2=stl_env, get_action=get_action, log_dest=log_dest, max_ep_len=200, num_episodes=num_evals)
     
     if args['plot_all']:
+        excludes = ['sparse_reward_stl'] # None
         log_dirs = []
         for i in range(len(plot_legend)):
             log_dirs.append(log_directory + plot_legend[i])
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageTestEpRet'],
                 #    ylim=(0, 1100), 
-                count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                count=False, smooth=1, select=None, exclude=excludes, estimator='mean')
 
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageAltTestEpRet'],
                 #    ylim=(0, 1100), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=excludes, estimator='mean')
 
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['TestEpLen'],
                 #    ylim=(0, 240), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=excludes, estimator='mean')
 
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AltTestEpLen'],
                 #    ylim=(0, 240), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=excludes, estimator='mean')
 
     if args['table']:
         log_dirs = []

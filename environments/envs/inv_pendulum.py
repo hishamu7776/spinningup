@@ -92,7 +92,7 @@ class InvPendulumEnv(gym.Env):
 
         reward = self.calculate_reward(newth, newthdot, u)
 
-        return self._get_obs(), reward, done, {'theta': newth}
+        return self._get_obs(), reward, done, {'theta': angle_normalize(newth)}
 
     def reset(self):
         high = np.array([0.8, 1.0])  # Pendulum starts +-46 degrees and +-1.0 rad/s

@@ -1,11 +1,12 @@
 env_name: Pendulum-v1
+horizon: 1
 constants:
     - name: theta_thresh
       type: float
-      value: 0.1
+      value: 0.5
     - name: omega_thresh
       type: float
-      value:  0.01
+      value:  0.1
 variables:
     - name: omega
       type: float
@@ -18,5 +19,5 @@ variables:
 specifications:
     - name: task
       descriptor: The pendulum will stabilize around upright
-      spec: task = eventually(always((abs(theta) <= theta_thresh) and (abs(omega) <= omega_thresh)))
-      weight: 1.0
+      spec: task = eventually(always((abs(theta) <= theta_thresh)))
+      weight: 2.0
