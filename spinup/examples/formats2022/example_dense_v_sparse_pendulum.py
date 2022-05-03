@@ -61,7 +61,7 @@ def do_rollouts(num_rollouts, policy1, policy2, policy3):
         done = False
         history2 = []
         env.reset()
-        env.state = (init_theta, init_theta_dot)
+        env.state = np.array([init_theta, init_theta_dot])
         o = np.array([np.cos(init_theta), np.sin(init_theta), init_theta_dot])
         theta = init_theta
         while not done:
@@ -74,12 +74,12 @@ def do_rollouts(num_rollouts, policy1, policy2, policy3):
         done = False
         history3 = []
         env.reset()
-        env.state = (init_theta, init_theta_dot)
+        env.state = np.array([init_theta, init_theta_dot])
         o = np.array([np.cos(init_theta), np.sin(init_theta), init_theta_dot])
         theta = init_theta
         while not done:
             history3.append(theta)
-            o, r, done, info = env.step(policy2(o))
+            o, r, done, info = env.step(policy3(o))
             theta = info['theta']
         trajectories3.append(history3)
 
@@ -296,7 +296,7 @@ if __name__ == "__main__":
             save_name = fig_directory + "dense_v_sparse_pendulum_rand_seed_" + str(i) + "_traces.png"
             _, get_action1 = load_policy_and_env(fpath=log_dest_baseline, itr='last', deterministic=True)
             _, get_action2 = load_policy_and_env(fpath=log_dest_sparse, itr='last', deterministic=True)
-            _, get_action3 = load_policy_and_env(fpath=log_dest_sparse, itr='last', deterministic=True)
+            _, get_action3 = load_policy_and_env(fpath=log_dest_dense, itr='last', deterministic=True)
             env = gym.make('Pendulum-v1')
             trajectories1, trajectories2, trajectories3 = do_rollouts(num_evals, get_action1, get_action2, get_action3)
             plot_trajectories(trajectories1, trajectories2, trajectories3, save_name)
