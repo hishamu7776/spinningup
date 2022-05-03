@@ -1,0 +1,34 @@
+env_name: CartPole-v1
+dense: True
+horizon: 70
+constants:
+    - name: dest_1
+      type: float
+      value: 1.5
+    - name: dest_2
+      type: float
+      value: -1.5
+    - name: epsilon
+      type: float
+      value: 0.1
+    - name: angle_max
+      type: float
+      value: 0.20943951023
+variables:
+    - name: pos
+      type: float
+      location: obs
+      identifier: 0
+    - name: angle
+      type: float
+      location: obs
+      identifier: 2
+specifications:
+    - name: angle_upright
+      descriptor: The pole is always within |angle| <= 12 degrees. Weight should make max 1.
+      spec: angle_upright = always(abs(angle) <= angle_max)
+      weight: 4.7746
+    - name: reach_1
+      descriptor: The cart moves to destination 1 and stays there for at least 20 steps. Weight should make max 1.
+      spec: reach_1 = eventually[0:50](always[0:20](abs(pos - dest_1) <= epsilon))
+      weight: 10.0

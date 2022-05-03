@@ -1,0 +1,20 @@
+env_name: Pendulum-v1
+horizon: 1
+dense: True
+constants:
+    - name: target_theta
+      type: float
+      value: 0.0
+    - name: epsilon
+      type: float
+      value:  0.09
+variables:
+    - name: theta
+      type: float
+      location: info
+      identifier: theta
+specifications:
+    - name: task
+      descriptor: The pendulum will stabilize around target_theta (0 degrees) +- 5 degrees
+      spec: task = eventually(always((abs(theta - target_theta) <= epsilon)))
+      weight: 11.11111
