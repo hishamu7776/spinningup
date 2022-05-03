@@ -1,0 +1,42 @@
+env_name: CartPole-v0
+dense: False
+horizon: 1
+constants:
+    - name: reach1_loc
+      type: float
+      value: 0.5
+    - name: reach2_loc
+      type: float
+      value: 0.0
+    - name: epsilon
+      type: float
+      value: 0.1
+    - name: angle_max
+      type: float
+      value: 0.20944
+variables:
+    - name: pos
+      type: float
+      location: obs
+      identifier: 0
+    - name: angle
+      type: float
+      location: obs
+      identifier: 2
+specifications:
+    - name: reach1
+      descriptor: The cart will reach pos = reach1_loc. Weight should make max 1.
+      spec: reach1 = eventually(abs(pos - reach1_loc) <= epsilon)
+      weight: 10.0
+    - name: reach2
+      descriptor: The cart will reach pos = reach2_loc. Weight should make max 1.
+      spec: reach2 = eventually(abs(pos - reach2_loc) <= epsilon)
+      weight: 10.0
+    - name: order
+      descriptor: The cart will not go to reach2_loc until it has been to reach1_loc. Weight should make max 1.
+      spec: order = (not reach2) until reach1
+      weight: 1.0
+    - name: safety
+      descriptor: The pole angle should always be within |angle| <= 12 degrees (0.20944 radians). Weight should make max 1.
+      spec: safety = always(abs(angle) <= angle_max)
+      weight: 4.77464
