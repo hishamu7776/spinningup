@@ -1,5 +1,5 @@
 """
-file: example_bad_specs.py
+file: example_split_spec_cartpole.py
 author: Nathaniel Hamilton
 email: nathaniel_hamilton@outlook.com
 
@@ -32,12 +32,13 @@ from environments import *
 
 
 # Function for plotting evaluation traces
-def do_rollouts_cartpole(num_rollouts, policy1):
+def do_rollouts(num_rollouts, policy1, policy2):
     """
     TODO
     """
     env = gym.make('CartPole-v1')
     trajectories1 = []
+    trajectories2 = []
     for i in range(num_rollouts):
         # Rollout policy1
         done = False
@@ -49,9 +50,24 @@ def do_rollouts_cartpole(num_rollouts, policy1):
             o, r, done, _ = env.step(policy1(o))
         trajectories1.append(history1)
 
-    return trajectories1
+        # Rollout policy2
+        done = False
+        history2 = []
+        env.reset()
+        env.state = (init_x, init_x_dot, init_theta, init_theta_dot)
+        o = np.array([init_x, init_x_dot, init_theta, init_theta_dot])
+        while not done:
+            history2.append(o)
+            o, r, done, _ = env.step(policy2(o))
+        trajectories2.append(history2)
 
-def plot_trajectories_cartpole(trajectories1, save_name):
+    return trajectories1, trajectories2
+
+def plot_trajectories(trajectories1, trajectories2, save_name):
+    """
+    TODO: trajectories1 is baseline
+    trajectories2 is retrained
+    """
     csfont = {'fontname': 'Times New Roman', 'fontsize': 20}
     fig, axis = plt.subplots(1, 2)
     axis = axis.flatten()
@@ -61,9 +77,15 @@ def plot_trajectories_cartpole(trajectories1, save_name):
         x1, _, theta1, _ = zip(*trajectories1[i])
         axis[0].plot(x1, np.linspace(0, len(x1)-1, len(x1)), 'b')
         axis[1].plot(theta1, np.linspace(0, len(theta1)-1, len(theta1)), 'b')
+        x2, _, theta2, _ = zip(*trajectories2[i])
+        axis[0].plot(x2, np.linspace(0, len(x2)-1, len(x2)), 'g--')
+        axis[1].plot(theta2, np.linspace(0, len(theta2)-1, len(theta2)), 'g--')
     x1, _, theta1, _ = zip(*trajectories1[-1])
-    axis[0].plot(x1, np.linspace(0, len(x1)-1, len(x1)), 'b')
-    axis[1].plot(theta1, np.linspace(0, len(theta1)-1, len(theta1)), 'b')
+    axis[0].plot(x1, np.linspace(0, len(x1)-1, len(x1)), 'b', label='baseline')
+    axis[1].plot(theta1, np.linspace(0, len(theta1)-1, len(theta1)), 'b', label='baseline')
+    x2, _, theta2, _ = zip(*trajectories2[-1])
+    axis[0].plot(x2, np.linspace(0, len(x2)-1, len(x2)), 'g--', label='retrained')
+    axis[1].plot(theta2, np.linspace(0, len(theta2)-1, len(theta2)), 'g--', label='retrained')
     """"""
 
     """ Add boundaries to plots """
@@ -99,71 +121,17 @@ def plot_trajectories_cartpole(trajectories1, save_name):
 
     return
 
-def do_rollouts_pendulum(num_rollouts, policy1):
-    """
-    TODO
-    """
-    env = gym.make('Pendulum-v1')
-    trajectories1 = []
-    for i in range(num_rollouts):
-        # Rollout policy1
-        done = False
-        history1 = []
-        o = env.reset()
-        init_theta, init_theta_dot = env.state
-        theta = init_theta
-        while not done:
-            history1.append(theta)
-            o, r, done, info = env.step(policy1(o))
-            theta = info['theta']
-        trajectories1.append(history1)
-
-    return trajectories1
-
-def plot_trajectories_pendulum(trajectories1, save_name):
-    """
-    TODO: trajectories1 is baseline
-    trajectories2 is retrained
-    """
-    csfont = {'fontname': 'Times New Roman', 'fontsize': 20}
-    fig, axis = plt.subplots(1, 1)
-    # axis = axis.flatten()
-
-    """ Plot individual trajectory lines """
-    for i in range(len(trajectories1)-1):
-        theta1 = trajectories1[i]
-        axis.plot(theta1, np.linspace(0, len(theta1)-1, len(theta1)), 'b')
-    theta1 = trajectories1[-1]
-    axis.plot(theta1, np.linspace(0, len(theta1)-1, len(theta1)), 'b')
-    """"""
-
-    """ Add boundaries to plots """
-    # Angle
-    # axis.axvspan(-2.4, -0.5, color='red', alpha=0.2)
-    # axis.axvspan(0.5, 2.4, color='red', alpha=0.2)
-    # axis.add_patch(Rectangle((-1.5, 199), 3, 6, facecolor=mcolors.cnames['lime'], alpha=0.5, fill=True))
-    # axis.add_patch(Rectangle((-1.5, 499), 3, 6, facecolor=mcolors.cnames['lime'], alpha=0.5, fill=True))
-    axis.set_title("Angle Trajectories", **csfont)
-    axis.set_ylabel("Time", **csfont)
-    axis.set_xlabel("Angle (radians)", **csfont)
-    axis.set_xlim([-np.pi, np.pi])
-    axis.tick_params(axis='x', labelsize=14)
-    axis.tick_params(axis='y', labelsize=14)
-    axis.legend(loc='lower right', fontsize=12)
-
-    plt.tight_layout()
-    fig.savefig(save_name, bbox_inches='tight', dpi=200)
-    # plt.show()
-
-    return
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--train-all', help="Train all experimental cases.", action="store_true")
-    parser.add_argument('--pendulum', help="TODO", action="store_true")
-    parser.add_argument('--cartpole',
+    parser.add_argument('--single', help="TODO", action="store_true")
+    parser.add_argument('--split',
+                        help="TODO",
+                        action="store_true")
+    parser.add_argument('--stlgym',
                         help="TODO",
                         action="store_true")
     parser.add_argument('--config-path', help='Path to STLGym config folder with specification.', type=str, default="./configs/")
@@ -182,27 +150,27 @@ if __name__ == "__main__":
     if "spinup" in cwd:
         if "examples" in cwd:
             if "formats2022" in cwd:
-                log_directory = "./logs/ex_bad_specs/"
-                fig_directory = "./logs/figures/ex_bad_specs/"
+                log_directory = "./logs/ex_split_spec_cartpole/"
+                fig_directory = "./logs/figures/ex_split_spec_cartpole/"
             else:
-                log_directory = "./formats2022/logs/ex_bad_specs/"
-                fig_directory = "./formats2022/logs/figures/ex_bad_specs/"
+                log_directory = "./formats2022/logs/ex_split_spec_cartpole/"
+                fig_directory = "./formats2022/logs/figures/ex_split_spec_cartpole/"
         else:
-            log_directory = "./examples/formats2022/logs/ex_bad_specs/"
-            fig_directory = "./examples/formats2022/logs/figures/ex_bad_specs/"
+            log_directory = "./examples/formats2022/logs/ex_split_spec_cartpole/"
+            fig_directory = "./examples/formats2022/logs/figures/ex_split_spec_cartpole/"
     else:
         log_directory = "/tmp/logs/ppo/cartpole/"
-        fig_directory = "/tmp/logs/ppo/cartpole/figures/ex_bad_specs/"
-    stl_env_config_pendulum = args['config_path'] + "ex_bad_specs_pendulum.yaml"
-    stl_env_config_pendulum_eval = args['config_path'] + "ex_bad_specs_pendulum_eval.yaml"
-    stl_env_config_cartpole = args['config_path'] + "ex_bad_specs_cartpole.yaml"
-    stl_env_config_cartpole_eval = args['config_path'] + "ex_bad_specs_cartpole_eval.yaml"
+        fig_directory = "/tmp/logs/ppo/cartpole/figures/ex_split_spec_cartpole/"
+    single_env_config = args['config_path'] + "ex_split_spec_cartpole_single.yaml"
+    split_env_config = args['config_path'] + "ex_split_spec_cartpole_split.yaml"
+    stlgym_env_config = args['config_path'] + "ex_split_spec_cartpole_stlgym.yaml"
+    stl_env_config_eval = args['config_path'] + "ex_split_spec_cartpole_eval.yaml"
 
     # Hyperparameters
-    random_seeds = [1630, 2241, 2320] # , 2990, 3281, 4930, 5640, 8005, 9348, 9462]
+    random_seeds = [1630, 2241, 2320, 2990, 3281, 4930, 5640, 8005, 9348, 9462]
     ac_kwargs = dict(hidden_sizes=(64, 64,))
     steps_per_epoch = 4000
-    epochs = 100
+    epochs = 50
     gamma = 0.99  
     clip_ratio = 0.2
     pi_lr = 3e-4
@@ -217,45 +185,24 @@ if __name__ == "__main__":
     num_evals = args['num_evals']
 
     # Experiment names for plotting
-    exp1_name = "pendulum"
-    exp2_name = "cartpole"
-    plot_legend = [exp1_name] #, exp2_name]
+    exp1_name = "single"
+    exp2_name = "split"
+    plot_legend = [exp1_name, exp2_name]
 
     if args['train_all']:
         # Overwrite the default false values to train all the experiments
-        args['pendulum'] = True
-        args['cartpole'] = False # Specification is actually good
+        args['single'] = True
+        args['split'] = True
 
-    # pendulum performance
-    if args['pendulum']:
+    # single performance
+    if args['single']:
         for i in range(len(random_seeds)):
-            env_fn = partial(stlgym.make, stl_env_config_pendulum)
-            test_env_fn = partial(gym.make, 'Pendulum-v1')
-            alt_test_env_fn = partial(stlgym.make, stl_env_config_pendulum_eval)
-            log_dest = log_directory + "pendulum/rand_seed_" + str(random_seeds[i])
+            env_fn = partial(stlgym.make, single_env_config)
+            test_env_fn = partial(stlgym.make, stl_env_config_eval)
+            log_dest = log_directory + "single/rand_seed_" + str(random_seeds[i])
             logger_kwargs = dict(output_dir=log_dest, exp_name=exp1_name)
-            print(f"Training PPO pendulum, random seed: {random_seeds[i]}...")
-            ppo(env_fn, test_env_fn=test_env_fn, alt_test_env_fn=alt_test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
-                steps_per_epoch=steps_per_epoch, epochs=epochs, gamma=gamma, clip_ratio=clip_ratio, pi_lr=pi_lr,
-                vf_lr=vf_lr, train_pi_iters=train_pi_iters, train_v_iters=train_v_iters, lam=lam, num_test_episodes=num_test_episodes, 
-                max_ep_len=max_ep_len, target_kl=target_kl, logger_kwargs=logger_kwargs, save_freq=save_freq)
-
-            # After the policy is trained, evaluate it for a given number of steps
-            env, get_action = load_policy_and_env(fpath=log_dest, itr='last', deterministic=True)
-            original_env = gym.make('Pendulum-v1')
-            stl_env = stlgym.make(stl_env_config_pendulum_eval)
-            evaluate_policy_in_2_environments(env1=original_env, env2=stl_env, get_action=get_action, log_dest=log_dest, max_ep_len=200, num_episodes=num_evals)
-
-    # Retraining with STLGym reward function
-    if args['cartpole']:
-        for i in range(len(random_seeds)):
-            env_fn = partial(stlgym.make, stl_env_config_cartpole)
-            test_env_fn = partial(gym.make, 'CartPole-v0')
-            alt_test_env_fn = partial(stlgym.make, stl_env_config_cartpole_eval)
-            log_dest = log_directory + "cartpole/rand_seed_" + str(random_seeds[i])
-            logger_kwargs = dict(output_dir=log_dest, exp_name=exp2_name)
-            print(f"Training PPO cartpole, random seed: {random_seeds[i]}...")
-            ppo(env_fn, test_env_fn=test_env_fn, alt_test_env_fn=alt_test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
+            print(f"Training PPO single, random seed: {random_seeds[i]}...")
+            ppo(env_fn, test_env_fn=test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
                 steps_per_epoch=steps_per_epoch, epochs=epochs, gamma=gamma, clip_ratio=clip_ratio, pi_lr=pi_lr,
                 vf_lr=vf_lr, train_pi_iters=train_pi_iters, train_v_iters=train_v_iters, lam=lam, num_test_episodes=num_test_episodes, 
                 max_ep_len=max_ep_len, target_kl=target_kl, logger_kwargs=logger_kwargs, save_freq=save_freq)
@@ -263,9 +210,48 @@ if __name__ == "__main__":
             # After the policy is trained, evaluate it for a given number of steps
             env, get_action = load_policy_and_env(fpath=log_dest, itr='last', deterministic=True)
             original_env = gym.make('CartPole-v0')
-            stl_env = stlgym.make(stl_env_config_cartpole_eval)
+            stl_env = stlgym.make(stl_env_config_eval)
+            evaluate_policy_in_2_environments(env1=original_env, env2=stl_env, get_action=get_action, log_dest=log_dest, max_ep_len=200, num_episodes=num_evals)
+
+    # Spliting the spec without weights
+    if args['split']:
+        for i in range(len(random_seeds)):
+            env_fn = partial(stlgym.make, split_env_config)
+            test_env_fn = partial(stlgym.make, stl_env_config_eval)
+            log_dest = log_directory + "split/rand_seed_" + str(random_seeds[i])
+            logger_kwargs = dict(output_dir=log_dest, exp_name=exp2_name)
+            print(f"Training PPO split, random seed: {random_seeds[i]}...")
+            ppo(env_fn, test_env_fn=test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
+                steps_per_epoch=steps_per_epoch, epochs=epochs, gamma=gamma, clip_ratio=clip_ratio, pi_lr=pi_lr,
+                vf_lr=vf_lr, train_pi_iters=train_pi_iters, train_v_iters=train_v_iters, lam=lam, num_test_episodes=num_test_episodes, 
+                max_ep_len=max_ep_len, target_kl=target_kl, logger_kwargs=logger_kwargs, save_freq=save_freq)
+
+            # After the policy is trained, evaluate it for a given number of steps
+            env, get_action = load_policy_and_env(fpath=log_dest, itr='last', deterministic=True)
+            original_env = gym.make('CartPole-v0')
+            stl_env = stlgym.make(stl_env_config_eval)
             evaluate_policy_in_2_environments(env1=original_env, env2=stl_env, get_action=get_action, log_dest=log_dest, max_ep_len=200, num_episodes=num_evals)
     
+    # Spliting the spec with weights (STLGym exclusive)
+    if args['stlgym']:
+        for i in range(len(random_seeds)):
+            env_fn = partial(stlgym.make, stlgym_env_config)
+            test_env_fn = partial(stlgym.make, stl_env_config_eval)
+            log_dest = log_directory + "stlgym/rand_seed_" + str(random_seeds[i])
+            logger_kwargs = dict(output_dir=log_dest, exp_name=exp2_name)
+            print(f"Training PPO stlgym, random seed: {random_seeds[i]}...")
+            ppo(env_fn, test_env_fn=test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
+                steps_per_epoch=steps_per_epoch, epochs=epochs, gamma=gamma, clip_ratio=clip_ratio, pi_lr=pi_lr,
+                vf_lr=vf_lr, train_pi_iters=train_pi_iters, train_v_iters=train_v_iters, lam=lam, num_test_episodes=num_test_episodes, 
+                max_ep_len=max_ep_len, target_kl=target_kl, logger_kwargs=logger_kwargs, save_freq=save_freq)
+
+            # After the policy is trained, evaluate it for a given number of steps
+            env, get_action = load_policy_and_env(fpath=log_dest, itr='last', deterministic=True)
+            original_env = gym.make('CartPole-v0')
+            stl_env = stlgym.make(stl_env_config_eval)
+            evaluate_policy_in_2_environments(env1=original_env, env2=stl_env, get_action=get_action, log_dest=log_dest, max_ep_len=200, num_episodes=num_evals)
+    
+
     if args['plot_all']:
         log_dirs = []
         for i in range(len(plot_legend)):
@@ -291,21 +277,16 @@ if __name__ == "__main__":
         if not os.path.exists(fig_directory):
             os.mkdir(fig_directory)
         
-        # Generate the trace figures for all random seeds with cartpole
-        # for i in random_seeds:
-        #     log_dest_cartpole = log_directory + "cartpole/rand_seed_" + str(i)
-        #     save_name = fig_directory + "bad_cartpole_rand_seed_" + str(i) + "_traces.png"
-        #     _, get_action = load_policy_and_env(fpath=log_dest_cartpole, itr='last', deterministic=True)
-        #     trajectories1 = do_rollouts_cartpole(num_evals, get_action)
-        #     plot_trajectories_cartpole(trajectories1, save_name)
-        
-        # Generate the trace figures for all random seeds with pendulum
+        # Generate the trace figures for all random seeds
         for i in random_seeds:
-            log_dest_pendulum = log_directory + "pendulum/rand_seed_" + str(i)
-            save_name = fig_directory + "bad_pendulum_rand_seed_" + str(i) + "_traces.png"
-            _, get_action = load_policy_and_env(fpath=log_dest_pendulum, itr='last', deterministic=True)
-            trajectories1 = do_rollouts_pendulum(2, get_action)
-            plot_trajectories_pendulum(trajectories1, save_name)
+            log_dest_baseline = log_directory + "baseline/rand_seed_" + str(i)
+            log_dest_retrain = log_directory + "retrain/rand_seed_" + str(i)
+            save_name = fig_directory + "retrain_cartpole_rand_seed_" + str(i) + "_traces.png"
+            _, get_action1 = load_policy_and_env(fpath=log_dest_baseline, itr='last', deterministic=True)
+            _, get_action2 = load_policy_and_env(fpath=log_dest_retrain, itr='last', deterministic=True)
+            env = gym.make('CartPole-v1') # We are using the environment with a longer episode to highlight where instability can occur
+            trajectories1, trajectories2 = do_rollouts(num_evals, get_action1, get_action2)
+            plot_trajectories(trajectories1, trajectories2, save_name)
 
     if args['table']:
         log_dirs = []
