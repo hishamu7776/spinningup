@@ -42,7 +42,7 @@ class ReplayBuffer:
 
 
 
-def td3(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0, 
+def td3(env_fn, test_env_fn=None, alt_test_env_fn=None, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0, 
         steps_per_epoch=4000, epochs=100, replay_size=int(1e6), gamma=0.99, 
         polyak=0.995, pi_lr=1e-3, q_lr=1e-3, batch_size=100, start_steps=10000, 
         update_after=1000, update_every=50, act_noise=0.1, target_noise=0.2, 
@@ -54,6 +54,12 @@ def td3(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
     Args:
         env_fn : A function which creates a copy of the environment.
+            The environment must satisfy the OpenAI Gym API.
+        
+        test_env_fn: (optional) A function which creates a copy of the environment for testing the agent.
+            The environment must satisfy the OpenAI Gym API.
+
+        alt_test_env_fn: (optional) A function which creates a copy of a different environment for testing the agent.
             The environment must satisfy the OpenAI Gym API.
 
         actor_critic: The constructor method for a PyTorch Module with an ``act`` 
@@ -152,7 +158,14 @@ def td3(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    env, test_env = env_fn(), env_fn()
+    env = env_fn()
+
+    ###################################################################################################################
+    # Additional environments for better testing/evaluation
+    test_env = env_fn() if test_env_fn is None else test_env_fn()
+    alt_test_env = None if alt_test_env_fn is None else alt_test_env_fn()
+    ###################################################################################################################
+
     obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape[0]
 
@@ -271,12 +284,30 @@ def td3(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     def test_agent():
         for j in range(num_test_episodes):
             o, d, ep_ret, ep_len = test_env.reset(), False, 0, 0
-            while not(d or (ep_len == max_ep_len)):
-                # Take deterministic actions at test time (noise_scale=0)
-                o, r, d, _ = test_env.step(get_action(o, 0))
+            while not (d or (ep_len == max_ep_len)):
+                # Take deterministic actions at test time 
+                o, r, d, env_info = test_env.step(get_action(o))
                 ep_ret += r
                 ep_len += 1
-            logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
+            if 'success' in env_info:
+                success = 1 if env_info['success'] else 0
+                logger.store(TestEpRet=ep_ret, TestEpLen=ep_len, Success=success)
+            else:
+                logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
+
+    def test_agent_alt():
+        for j in range(num_test_episodes):
+            o, d, ep_ret, ep_len = alt_test_env.reset(), False, 0, 0
+            while not (d or (ep_len == max_ep_len)):
+                # Take deterministic actions at test time
+                o, r, d, env_info = alt_test_env.step(get_action(o))
+                ep_ret += r
+                ep_len += 1
+            if 'success' in env_info:
+                success = 1 if env_info['success'] else 0
+                logger.store(AltTestEpRet=ep_ret, AltTestEpLen=ep_len, AltSuccess=success)
+            else:
+                logger.store(AltTestEpRet=ep_ret, AltTestEpLen=ep_len)
 
     # Prepare for interaction with environment
     total_steps = steps_per_epoch * epochs
@@ -339,13 +370,27 @@ def td3(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             logger.log_tabular('TestEpRet', with_min_and_max=True)
             logger.log_tabular('EpLen', average_only=True)
             logger.log_tabular('TestEpLen', average_only=True)
-            logger.log_tabular('TotalEnvInteracts', t)
-            logger.log_tabular('Q1Vals', with_min_and_max=True)
-            logger.log_tabular('Q2Vals', with_min_and_max=True)
+            logger.log_tabular('VVals', with_min_and_max=True)
+            if 'Success' in logger.epoch_dict:
+                logger.log_tabular('Success', average_only=True)
+            logger.log_tabular('TotalEnvInteracts', (epoch+1)*steps_per_epoch)
             logger.log_tabular('LossPi', average_only=True)
-            logger.log_tabular('LossQ', average_only=True)
+            logger.log_tabular('LossV', average_only=True)
+            logger.log_tabular('DeltaLossPi', average_only=True)
+            logger.log_tabular('DeltaLossV', average_only=True)
+            logger.log_tabular('Entropy', average_only=True)
+            logger.log_tabular('KL', average_only=True)
+            logger.log_tabular('ClipFrac', average_only=True)
+            logger.log_tabular('StopIter', average_only=True)
             logger.log_tabular('Time', time.time()-start_time)
-            logger.dump_tabular()
+
+            # Test the performance of the deterministic agent on an alternate environment if provided and log the results
+            if alt_test_env is not None:
+                test_agent_alt()
+                logger.log_tabular('AltTestEpRet', with_min_and_max=True)
+                logger.log_tabular('AltTestEpLen', average_only=True)
+                if 'AltSuccess' in logger.epoch_dict:
+                    logger.log_tabular('AltSuccess', average_only=True)
 
 if __name__ == '__main__':
     import argparse

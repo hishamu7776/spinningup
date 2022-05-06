@@ -85,9 +85,9 @@ class VPGBuffer:
 
 
 
-def vpg(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(),  seed=0, 
+def vpg(env_fn, test_env_fn=None, alt_test_env_fn=None, actor_critic=core.MLPActorCritic, ac_kwargs=dict(),  seed=0, 
         steps_per_epoch=4000, epochs=50, gamma=0.99, pi_lr=3e-4,
-        vf_lr=1e-3, train_v_iters=80, lam=0.97, max_ep_len=1000,
+        vf_lr=1e-3, train_v_iters=80, lam=0.97, num_test_episodes=10, max_ep_len=1000,
         logger_kwargs=dict(), save_freq=10):
     """
     Vanilla Policy Gradient 
@@ -96,6 +96,12 @@ def vpg(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(),  seed=0,
 
     Args:
         env_fn : A function which creates a copy of the environment.
+            The environment must satisfy the OpenAI Gym API.
+        
+        test_env_fn: (optional) A function which creates a copy of the environment for testing the agent.
+            The environment must satisfy the OpenAI Gym API.
+        
+        alt_test_env_fn: (optional) A function which creates a copy of a different environment for testing the agent.
             The environment must satisfy the OpenAI Gym API.
 
         actor_critic: The constructor method for a PyTorch Module with a 
@@ -166,6 +172,9 @@ def vpg(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(),  seed=0,
 
         lam (float): Lambda for GAE-Lambda. (Always between 0 and 1,
             close to 1.)
+        
+        num_test_episodes (int): Number of episodes to test the deterministic
+            policy at the end of each epoch.
 
         max_ep_len (int): Maximum length of trajectory / episode / rollout.
 
@@ -190,6 +199,13 @@ def vpg(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(),  seed=0,
 
     # Instantiate environment
     env = env_fn()
+
+    ###################################################################################################################
+    # Additional environments for better testing/evaluation
+    test_env = env_fn() if test_env_fn is None else test_env_fn()
+    alt_test_env = None if alt_test_env_fn is None else alt_test_env_fn()
+    ###################################################################################################################
+
     obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape
 
@@ -264,6 +280,37 @@ def vpg(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(),  seed=0,
                      DeltaLossPi=(loss_pi.item() - pi_l_old),
                      DeltaLossV=(loss_v.item() - v_l_old))
 
+    def get_action(o):
+        return ac.act(torch.as_tensor(o, dtype=torch.float32))
+
+    def test_agent():
+        for j in range(num_test_episodes):
+            o, d, ep_ret, ep_len = test_env.reset(), False, 0, 0
+            while not (d or (ep_len == max_ep_len)):
+                # Take deterministic actions at test time 
+                o, r, d, env_info = test_env.step(get_action(o))
+                ep_ret += r
+                ep_len += 1
+            if 'success' in env_info:
+                success = 1 if env_info['success'] else 0
+                logger.store(TestEpRet=ep_ret, TestEpLen=ep_len, Success=success)
+            else:
+                logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
+
+    def test_agent_alt():
+        for j in range(num_test_episodes):
+            o, d, ep_ret, ep_len = alt_test_env.reset(), False, 0, 0
+            while not (d or (ep_len == max_ep_len)):
+                # Take deterministic actions at test time
+                o, r, d, env_info = alt_test_env.step(get_action(o))
+                ep_ret += r
+                ep_len += 1
+            if 'success' in env_info:
+                success = 1 if env_info['success'] else 0
+                logger.store(AltTestEpRet=ep_ret, AltTestEpLen=ep_len, AltSuccess=success)
+            else:
+                logger.store(AltTestEpRet=ep_ret, AltTestEpLen=ep_len)
+
     # Prepare for interaction with environment
     start_time = time.time()
     o, ep_ret, ep_len = env.reset(), 0, 0
@@ -310,11 +357,18 @@ def vpg(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(),  seed=0,
         # Perform VPG update!
         update()
 
+        # Test the performance of the deterministic version of the agent.
+        test_agent()
+
         # Log info about epoch
         logger.log_tabular('Epoch', epoch)
         logger.log_tabular('EpRet', with_min_and_max=True)
+        logger.log_tabular('TestEpRet', with_min_and_max=True)
         logger.log_tabular('EpLen', average_only=True)
+        logger.log_tabular('TestEpLen', average_only=True)
         logger.log_tabular('VVals', with_min_and_max=True)
+        if 'Success' in logger.epoch_dict:
+            logger.log_tabular('Success', average_only=True)
         logger.log_tabular('TotalEnvInteracts', (epoch+1)*steps_per_epoch)
         logger.log_tabular('LossPi', average_only=True)
         logger.log_tabular('LossV', average_only=True)
@@ -322,8 +376,17 @@ def vpg(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(),  seed=0,
         logger.log_tabular('DeltaLossV', average_only=True)
         logger.log_tabular('Entropy', average_only=True)
         logger.log_tabular('KL', average_only=True)
+        logger.log_tabular('ClipFrac', average_only=True)
+        logger.log_tabular('StopIter', average_only=True)
         logger.log_tabular('Time', time.time()-start_time)
-        logger.dump_tabular()
+
+        # Test the performance of the deterministic agent on an alternate environment if provided and log the results
+        if alt_test_env is not None:
+            test_agent_alt()
+            logger.log_tabular('AltTestEpRet', with_min_and_max=True)
+            logger.log_tabular('AltTestEpLen', average_only=True)
+            if 'AltSuccess' in logger.epoch_dict:
+                logger.log_tabular('AltSuccess', average_only=True)
 
 if __name__ == '__main__':
     import argparse
