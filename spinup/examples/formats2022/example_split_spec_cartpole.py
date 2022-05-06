@@ -187,12 +187,14 @@ if __name__ == "__main__":
     # Experiment names for plotting
     exp1_name = "single"
     exp2_name = "split"
-    plot_legend = [exp1_name, exp2_name]
+    exp3_name = "stlgym"
+    plot_legend = [exp1_name, exp2_name, exp3_name]
 
     if args['train_all']:
         # Overwrite the default false values to train all the experiments
         args['single'] = True
         args['split'] = True
+        args['stlgym'] = True
 
     # single performance
     if args['single']:
@@ -238,7 +240,7 @@ if __name__ == "__main__":
             env_fn = partial(stlgym.make, stlgym_env_config)
             test_env_fn = partial(stlgym.make, stl_env_config_eval)
             log_dest = log_directory + "stlgym/rand_seed_" + str(random_seeds[i])
-            logger_kwargs = dict(output_dir=log_dest, exp_name=exp2_name)
+            logger_kwargs = dict(output_dir=log_dest, exp_name=exp3_name)
             print(f"Training PPO stlgym, random seed: {random_seeds[i]}...")
             ppo(env_fn, test_env_fn=test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
                 steps_per_epoch=steps_per_epoch, epochs=epochs, gamma=gamma, clip_ratio=clip_ratio, pi_lr=pi_lr,

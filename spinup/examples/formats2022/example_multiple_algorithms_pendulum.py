@@ -177,7 +177,7 @@ if __name__ == "__main__":
     stl_env_config_eval = args['config_path'] + "ex_dense_v_sparse_pendulum_eval.yaml"
 
     # Shared hyperparameters
-    random_seeds = [1630, 2241, 2320] # , 2990, 3281, 4930, 5640, 8005, 9348, 9462]
+    random_seeds = [1630, 2241, 2320, 2990, 3281, 4930, 5640, 8005, 9348, 9462]
     ac_kwargs = dict(hidden_sizes=(64, 64,))
     steps_per_epoch = 4000
     epochs = 100
@@ -195,10 +195,10 @@ if __name__ == "__main__":
     num_evals = args['num_evals']
 
     # Experiment names for plotting
-    ppo_name = "PPO"
-    sac_name = "SAC"
-    td3_name = "TD3"
-    vpg_name = "VPG"
+    ppo_name = "ppo"
+    sac_name = "sac"
+    td3_name = "td3"
+    vpg_name = "vpg"
     plot_legend = [ppo_name, sac_name, td3_name, vpg_name]
 
     if args['train_all']:
