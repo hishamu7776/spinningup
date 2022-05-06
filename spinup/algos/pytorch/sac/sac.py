@@ -369,18 +369,14 @@ def sac(env_fn, test_env_fn=None, alt_test_env_fn=None, actor_critic=core.MLPAct
             logger.log_tabular('TestEpRet', with_min_and_max=True)
             logger.log_tabular('EpLen', average_only=True)
             logger.log_tabular('TestEpLen', average_only=True)
-            logger.log_tabular('VVals', with_min_and_max=True)
             if 'Success' in logger.epoch_dict:
                 logger.log_tabular('Success', average_only=True)
-            logger.log_tabular('TotalEnvInteracts', (epoch+1)*steps_per_epoch)
+            logger.log_tabular('TotalEnvInteracts', t)
+            logger.log_tabular('Q1Vals', average_only=True)
+            logger.log_tabular('Q2Vals', average_only=True)
+            logger.log_tabular('LogPi', average_only=True)
             logger.log_tabular('LossPi', average_only=True)
-            logger.log_tabular('LossV', average_only=True)
-            logger.log_tabular('DeltaLossPi', average_only=True)
-            logger.log_tabular('DeltaLossV', average_only=True)
-            logger.log_tabular('Entropy', average_only=True)
-            logger.log_tabular('KL', average_only=True)
-            logger.log_tabular('ClipFrac', average_only=True)
-            logger.log_tabular('StopIter', average_only=True)
+            logger.log_tabular('LossQ', average_only=True)
             logger.log_tabular('Time', time.time()-start_time)
 
             # Test the performance of the deterministic agent on an alternate environment if provided and log the results
@@ -390,6 +386,8 @@ def sac(env_fn, test_env_fn=None, alt_test_env_fn=None, actor_critic=core.MLPAct
                 logger.log_tabular('AltTestEpLen', average_only=True)
                 if 'AltSuccess' in logger.epoch_dict:
                     logger.log_tabular('AltSuccess', average_only=True)
+            
+            logger.dump_tabular()
 
 if __name__ == '__main__':
     import argparse

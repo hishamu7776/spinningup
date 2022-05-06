@@ -376,8 +376,6 @@ def vpg(env_fn, test_env_fn=None, alt_test_env_fn=None, actor_critic=core.MLPAct
         logger.log_tabular('DeltaLossV', average_only=True)
         logger.log_tabular('Entropy', average_only=True)
         logger.log_tabular('KL', average_only=True)
-        logger.log_tabular('ClipFrac', average_only=True)
-        logger.log_tabular('StopIter', average_only=True)
         logger.log_tabular('Time', time.time()-start_time)
 
         # Test the performance of the deterministic agent on an alternate environment if provided and log the results
@@ -387,6 +385,8 @@ def vpg(env_fn, test_env_fn=None, alt_test_env_fn=None, actor_critic=core.MLPAct
             logger.log_tabular('AltTestEpLen', average_only=True)
             if 'AltSuccess' in logger.epoch_dict:
                 logger.log_tabular('AltSuccess', average_only=True)
+        
+        logger.dump_tabular()
 
 if __name__ == '__main__':
     import argparse
