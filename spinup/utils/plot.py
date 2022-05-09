@@ -53,7 +53,7 @@ def plot_data(data, xaxis='Epoch', value="AverageEpRet", condition="Condition1",
     # Added to make plots look nice
     if xaxis is 'TotalEnvInteracts':
         plt.xlabel('Timesteps')
-    if value is 'AverageTestEpRet' or value is 'AverageAltEpRet':
+    if value is 'AverageTestEpRet' or value is 'AverageAltTestEpRet':
         plt.ylabel('Average Return')
     if value is 'TestEpLen' or value is 'AltTestEpLen':
         plt.ylabel('Average Episode Length')
