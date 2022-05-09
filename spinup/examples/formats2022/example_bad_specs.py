@@ -270,21 +270,25 @@ if __name__ == "__main__":
         log_dirs = []
         for i in range(len(plot_legend)):
             log_dirs.append(log_directory + plot_legend[i])
+        save_name = fig_directory + "sample_complexity_baseline.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageTestEpRet'],
                 #    ylim=(0, 1100), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
+        save_name = fig_directory + "sample_complexity_stl.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageAltTestEpRet'],
                 #    ylim=(0, 1100), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
+        save_name = fig_directory + "episode_length_baseline.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['TestEpLen'],
                 #    ylim=(0, 240), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
+        save_name = fig_directory + "episode_length_stl.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AltTestEpLen'],
                 #    ylim=(0, 240), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
     
     if args['plot_traces']:
         # Ensure the figure directory exists

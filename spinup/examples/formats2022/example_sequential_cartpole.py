@@ -36,7 +36,7 @@ def do_rollouts(num_rollouts, policy1, policy2):
     """
     TODO
     """
-    env = gym.make('CartPole-v1')
+    env = gym.make('CartPole-v0')
     trajectories1 = []
     trajectories2 = []
     for i in range(num_rollouts):
@@ -93,7 +93,7 @@ def plot_trajectories(trajectories1, trajectories2, save_name):
     axis[0].axvspan(-2.4, -0.5, color='red', alpha=0.2)
     axis[0].axvspan(0.5, 2.4, color='red', alpha=0.2)
     axis[0].add_patch(Rectangle((-1.5, 199), 3, 6, facecolor=mcolors.cnames['lime'], alpha=0.5, fill=True))
-    axis[0].add_patch(Rectangle((-1.5, 499), 3, 6, facecolor=mcolors.cnames['lime'], alpha=0.5, fill=True))
+    # axis[0].add_patch(Rectangle((-1.5, 499), 3, 6, facecolor=mcolors.cnames['lime'], alpha=0.5, fill=True))
     axis[0].set_title("Position Trajectories", **csfont)
     axis[0].set_ylabel("Time", **csfont)
     axis[0].set_xlabel("Horizontal Position", **csfont)
@@ -103,10 +103,10 @@ def plot_trajectories(trajectories1, trajectories2, save_name):
     axis[0].legend(loc='lower right', fontsize=12)
 
     # Angle
-    axis[1].axvspan(-0.48, -0.0872665, color='red', alpha=0.2)
-    axis[1].axvspan(0.0872665, 0.48, color='red', alpha=0.2)
+    axis[1].axvspan(-0.48, -0.20944, color='red', alpha=0.2)
+    axis[1].axvspan(0.20944, 0.48, color='red', alpha=0.2)
     axis[1].add_patch(Rectangle((-0.48, 199), 0.94, 6, facecolor=mcolors.cnames['lime'], alpha=0.5, fill=True))
-    axis[1].add_patch(Rectangle((-0.48, 499), 0.94, 6, facecolor=mcolors.cnames['lime'], alpha=0.5, fill=True))
+    # axis[1].add_patch(Rectangle((-0.48, 499), 0.94, 6, facecolor=mcolors.cnames['lime'], alpha=0.5, fill=True))
     axis[1].set_title("Angle Trajectories", **csfont)
     axis[1].set_ylabel("Time", **csfont)
     axis[1].set_xlabel("Angle (radians)", **csfont)
@@ -240,21 +240,25 @@ if __name__ == "__main__":
         log_dirs = []
         for i in range(len(plot_legend)):
             log_dirs.append(log_directory + plot_legend[i])
+        save_name = fig_directory + "sample_complexity_baseline.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageTestEpRet'],
                 #    ylim=(0, 1100), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
+        save_name = fig_directory + "sample_complexity_stl.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageAltTestEpRet'],
                 #    ylim=(0, 1100), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
+        save_name = fig_directory + "episode_length_baseline.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['TestEpLen'],
                 #    ylim=(0, 240), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
+        save_name = fig_directory + "episode_length_stl.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AltTestEpLen'],
                 #    ylim=(0, 240), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
     
     if args['plot_traces']:
         # Ensure the figure directory exists

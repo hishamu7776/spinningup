@@ -238,21 +238,25 @@ if __name__ == "__main__":
         log_dirs = []
         for i in range(len(plot_legend)):
             log_dirs.append(log_directory + plot_legend[i])
+        save_name = fig_directory + "sample_complexity_baseline.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageTestEpRet'],
                 #    ylim=(0, 1100), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
+        save_name = fig_directory + "sample_complexity_stl.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageAltTestEpRet'],
                 #    ylim=(0, 1100), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
+        save_name = fig_directory + "episode_length_baseline.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['TestEpLen'],
                 #    ylim=(0, 240), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
+        save_name = fig_directory + "episode_length_stl.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AltTestEpLen'],
                 #    ylim=(0, 240), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
     
     if args['plot_traces']:
         # Ensure the figure directory exists
@@ -267,7 +271,7 @@ if __name__ == "__main__":
             _, get_action1 = load_policy_and_env(fpath=log_dest_baseline, itr='last', deterministic=True)
             _, get_action2 = load_policy_and_env(fpath=log_dest_retrain, itr='last', deterministic=True)
             env = gym.make('CartPole-v1') # We are using the environment with a longer episode to highlight where instability can occur
-            trajectories1, trajectories2 = do_rollouts(num_evals, get_action1, get_action2)
+            trajectories1, trajectories2 = do_rollouts(10, get_action1, get_action2)
             plot_trajectories(trajectories1, trajectories2, save_name)
 
     if args['table']:

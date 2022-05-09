@@ -180,7 +180,7 @@ if __name__ == "__main__":
     random_seeds = [1630, 2241, 2320, 2990, 3281, 4930, 5640, 8005, 9348, 9462]
     ac_kwargs = dict(hidden_sizes=(64, 64,))
     steps_per_epoch = 4000
-    epochs = 100
+    epochs = 100 # SAC & TD3 learn in ~10epochs but PPO & VPG require ~100
     gamma = 0.99  
     clip_ratio = 0.2
     pi_lr = 3e-4
@@ -199,14 +199,14 @@ if __name__ == "__main__":
     sac_name = "sac"
     td3_name = "td3"
     vpg_name = "vpg"
-    plot_legend = [ppo_name, sac_name, td3_name, vpg_name]
+    plot_legend = [ppo_name, sac_name, td3_name] #, vpg_name]
 
     if args['train_all']:
         # Overwrite the default false values to train all the experiments
         args['ppo'] = True
         args['sac'] = True
         args['td3'] = True
-        args['vpg'] = True
+        # args['vpg'] = True
 
     # ppo performance
     if args['ppo']:
@@ -269,13 +269,15 @@ if __name__ == "__main__":
         log_dirs = []
         for i in range(len(plot_legend)):
             log_dirs.append(log_directory + plot_legend[i])
+        save_name = fig_directory + "sample_complexity_stl.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageTestEpRet'],
                 #    ylim=(0, 1100), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
+        save_name = fig_directory + "episode_length_stl.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['TestEpLen'],
                 #    ylim=(0, 240), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
     
     if args['plot_traces']:
         # Ensure the figure directory exists

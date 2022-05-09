@@ -50,6 +50,15 @@ def plot_data(data, xaxis='Epoch', value="AverageEpRet", condition="Condition1",
     plt.legend(loc='upper center', ncol=6, handlelength=1,
                mode="expand", borderaxespad=0., prop={'size': 13})
     """
+    # Added to make plots look nice
+    if xaxis is 'TotalEnvInteracts':
+        plt.xlabel('Timesteps')
+    if value is 'AverageTestEpRet' or value is 'AverageAltEpRet':
+        plt.ylabel('Average Return')
+    if value is 'TestEpLen' or value is 'AltTestEpLen':
+        plt.ylabel('Average Episode Length')
+    if value is 'Success' or value is 'AltSuccess':
+        plt.ylabel('Average Success')
 
     xscale = np.max(np.asarray(data[xaxis])) > 5e3
     if xscale:
@@ -152,15 +161,19 @@ def get_all_datasets(all_logdirs, legend=None, select=None, exclude=None):
 
 
 def make_plots(all_logdirs, legend=None, xaxis=None, values=None, count=False,  
-               font_scale=1.5, smooth=1, select=None, exclude=None, estimator='mean'):
+               font_scale=1.5, smooth=1, select=None, exclude=None, estimator='mean', 
+               save_name=None):
     data = get_all_datasets(all_logdirs, legend, select, exclude)
     values = values if isinstance(values, list) else [values]
     condition = 'Condition2' if count else 'Condition1'
     estimator = getattr(np, estimator)      # choose what to show on main curve: mean? max? min?
     for value in values:
-        plt.figure()
+        fig = plt.figure()
         plot_data(data, xaxis=xaxis, value=value, condition=condition, smooth=smooth, estimator=estimator)
-    plt.show()
+    if save_name is None or len(values) > 1:
+        plt.show()
+    else:
+        fig.savefig(save_name, bbox_inches='tight', dpi=200)
 
 
 def main():

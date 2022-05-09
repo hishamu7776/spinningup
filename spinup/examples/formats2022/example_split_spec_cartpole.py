@@ -32,13 +32,14 @@ from environments import *
 
 
 # Function for plotting evaluation traces
-def do_rollouts(num_rollouts, policy1, policy2):
+def do_rollouts(num_rollouts, policy1, policy2, policy3):
     """
     TODO
     """
     env = gym.make('CartPole-v1')
     trajectories1 = []
     trajectories2 = []
+    trajectories3 = []
     for i in range(num_rollouts):
         # Rollout policy1
         done = False
@@ -61,9 +62,20 @@ def do_rollouts(num_rollouts, policy1, policy2):
             o, r, done, _ = env.step(policy2(o))
         trajectories2.append(history2)
 
-    return trajectories1, trajectories2
+        # Rollout policy3
+        done = False
+        history3 = []
+        env.reset()
+        env.state = (init_x, init_x_dot, init_theta, init_theta_dot)
+        o = np.array([init_x, init_x_dot, init_theta, init_theta_dot])
+        while not done:
+            history3.append(o)
+            o, r, done, _ = env.step(policy3(o))
+        trajectories3.append(history3)
 
-def plot_trajectories(trajectories1, trajectories2, save_name):
+    return trajectories1, trajectories2, trajectories3
+
+def plot_trajectories(trajectories1, trajectories2, trajectories3, save_name):
     """
     TODO: trajectories1 is baseline
     trajectories2 is retrained
@@ -75,17 +87,23 @@ def plot_trajectories(trajectories1, trajectories2, save_name):
     """ Plot individual trajectory lines """
     for i in range(len(trajectories1)-1):
         x1, _, theta1, _ = zip(*trajectories1[i])
-        axis[0].plot(x1, np.linspace(0, len(x1)-1, len(x1)), 'b')
-        axis[1].plot(theta1, np.linspace(0, len(theta1)-1, len(theta1)), 'b')
+        axis[0].plot(x1, np.linspace(0, len(x1)-1, len(x1)), 'b--')
+        axis[1].plot(theta1, np.linspace(0, len(theta1)-1, len(theta1)), 'b--')
         x2, _, theta2, _ = zip(*trajectories2[i])
         axis[0].plot(x2, np.linspace(0, len(x2)-1, len(x2)), 'g--')
         axis[1].plot(theta2, np.linspace(0, len(theta2)-1, len(theta2)), 'g--')
+        x3, _, theta3, _ = zip(*trajectories3[i])
+        axis[0].plot(x3, np.linspace(0, len(x3)-1, len(x3)), 'r--')
+        axis[1].plot(theta3, np.linspace(0, len(theta3)-1, len(theta3)), 'r--')
     x1, _, theta1, _ = zip(*trajectories1[-1])
-    axis[0].plot(x1, np.linspace(0, len(x1)-1, len(x1)), 'b', label='baseline')
-    axis[1].plot(theta1, np.linspace(0, len(theta1)-1, len(theta1)), 'b', label='baseline')
+    axis[0].plot(x1, np.linspace(0, len(x1)-1, len(x1)), 'b', label='single')
+    axis[1].plot(theta1, np.linspace(0, len(theta1)-1, len(theta1)), 'b', label='sinlge')
     x2, _, theta2, _ = zip(*trajectories2[-1])
-    axis[0].plot(x2, np.linspace(0, len(x2)-1, len(x2)), 'g--', label='retrained')
-    axis[1].plot(theta2, np.linspace(0, len(theta2)-1, len(theta2)), 'g--', label='retrained')
+    axis[0].plot(x2, np.linspace(0, len(x2)-1, len(x2)), 'g--', label='split')
+    axis[1].plot(theta2, np.linspace(0, len(theta2)-1, len(theta2)), 'g--', label='split')
+    x3, _, theta3, _ = zip(*trajectories3[-1])
+    axis[0].plot(x3, np.linspace(0, len(x3)-1, len(x3)), 'r--', label='stlgym')
+    axis[1].plot(theta3, np.linspace(0, len(theta3)-1, len(theta3)), 'r--', label='stlgym')
     """"""
 
     """ Add boundaries to plots """
@@ -258,21 +276,15 @@ if __name__ == "__main__":
         log_dirs = []
         for i in range(len(plot_legend)):
             log_dirs.append(log_directory + plot_legend[i])
+        save_name = fig_directory + "sample_complexity_stl.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageTestEpRet'],
                 #    ylim=(0, 1100), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
-        make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageAltTestEpRet'],
-                #    ylim=(0, 1100), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
-
+        save_name = fig_directory + "episode_length_stl.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['TestEpLen'],
                 #    ylim=(0, 240), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
-
-        make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AltTestEpLen'],
-                #    ylim=(0, 240), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
     
     if args['plot_traces']:
         # Ensure the figure directory exists
@@ -281,14 +293,15 @@ if __name__ == "__main__":
         
         # Generate the trace figures for all random seeds
         for i in random_seeds:
-            log_dest_baseline = log_directory + "baseline/rand_seed_" + str(i)
-            log_dest_retrain = log_directory + "retrain/rand_seed_" + str(i)
-            save_name = fig_directory + "retrain_cartpole_rand_seed_" + str(i) + "_traces.png"
-            _, get_action1 = load_policy_and_env(fpath=log_dest_baseline, itr='last', deterministic=True)
-            _, get_action2 = load_policy_and_env(fpath=log_dest_retrain, itr='last', deterministic=True)
-            env = gym.make('CartPole-v1') # We are using the environment with a longer episode to highlight where instability can occur
-            trajectories1, trajectories2 = do_rollouts(num_evals, get_action1, get_action2)
-            plot_trajectories(trajectories1, trajectories2, save_name)
+            log_dest_single = log_directory + "single/rand_seed_" + str(i)
+            log_dest_split = log_directory + "split/rand_seed_" + str(i)
+            log_dest_stlgym = log_directory + "stlgym/rand_seed_" + str(i)
+            save_name = fig_directory + "split_spec_cartpole_rand_seed_" + str(i) + "_traces.png"
+            _, get_action1 = load_policy_and_env(fpath=log_dest_single, itr='last', deterministic=True)
+            _, get_action2 = load_policy_and_env(fpath=log_dest_split, itr='last', deterministic=True)
+            _, get_action3 = load_policy_and_env(fpath=log_dest_stlgym, itr='last', deterministic=True)
+            trajectories1, trajectories2, trajectories3 = do_rollouts(10, get_action1, get_action2, get_action3)
+            plot_trajectories(trajectories1, trajectories2, trajectories3, save_name)
 
     if args['table']:
         log_dirs = []
