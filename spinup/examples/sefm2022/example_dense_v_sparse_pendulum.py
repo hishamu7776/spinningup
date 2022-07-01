@@ -1,10 +1,14 @@
 """
-file: example_multiple_algorithms_pendulum.py
+file: example_retrain.py
 author: Nathaniel Hamilton
 email: nathaniel_hamilton@outlook.com
 
 description:
-    TODO
+    This example demonstrates how STLGym can be used to retrain an agent to satisfy a more specific goal. 
+    This example uses the cartpole environment. The baseline reward function is very effective at training an agent to keep the pole up.
+    However, many different solutions can be learned from tis vague reward function. 
+    Not all learned solutions are stable and some cannot last longer than the 200 step minimum made default.
+    With STLGym, we can quickly retrain these solutions to learn specified behavior.
 
 """
 # general libraries
@@ -22,9 +26,6 @@ import seaborn as sns
 
 # spinup-specific
 from spinup import ppo_pytorch as ppo
-from spinup import sac_pytorch as sac
-from spinup import td3_pytorch as td3
-from spinup import vpg_pytorch as vpg
 from spinup.utils.test_policy import *
 from spinup.utils.plot import *
 from spinup.utils.tables import *
@@ -135,14 +136,11 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--train-all', help="Train all experimental cases.", action="store_true")
-    parser.add_argument('--ppo', help="TODO", action="store_true")
-    parser.add_argument('--sac',
+    parser.add_argument('--baseline', help="TODO", action="store_true")
+    parser.add_argument('--sparse',
                         help="TODO",
                         action="store_true")
-    parser.add_argument('--td3',
-                        help="TODO",
-                        action="store_true")
-    parser.add_argument('--vpg',
+    parser.add_argument('--dense',
                         help="TODO",
                         action="store_true")
     parser.add_argument('--config-path', help='Path to STLGym config folder with specification.', type=str, default="./configs/")
@@ -160,27 +158,26 @@ if __name__ == "__main__":
     cwd = os.getcwd()
     if "spinup" in cwd:
         if "examples" in cwd:
-            if "formats2022" in cwd:
-                log_directory = "./logs/ex_multiple_algorithms_pendulum/"
-                fig_directory = "./logs/figures/ex_multiple_algorithms_pendulum/"
+            if "sefm2022" in cwd:
+                log_directory = "./logs/ex_dense_v_sparse_pendulum/"
+                fig_directory = "./logs/figures/ex_dense_v_sparse_pendulum/"
             else:
-                log_directory = "./formats2022/logs/ex_multiple_algorithms_pendulum/"
-                fig_directory = "./formats2022/logs/figures/ex_multiple_algorithms_pendulum/"
+                log_directory = "./sefm2022/logs/ex_dense_v_sparse_pendulum/"
+                fig_directory = "./sefm2022/logs/figures/ex_dense_v_sparse_pendulum/"
         else:
-            log_directory = "./examples/formats2022/logs/ex_multiple_algorithms_pendulum/"
-            fig_directory = "./examples/formats2022/logs/figures/ex_multiple_algorithms_pendulum/"
+            log_directory = "./examples/sefm2022/logs/ex_dense_v_sparse_pendulum/"
+            fig_directory = "./examples/sefm2022/logs/figures/ex_dense_v_sparse_pendulum/"
     else:
         log_directory = "/tmp/logs/ppo/pendulum/"
-        fig_directory = "/tmp/logs/ppo/pendulum/figures/ex_multiple_algorithms_pendulum/"
-    # Reusing the specifications written for the previous pendulum example
+        fig_directory = "/tmp/logs/ppo/pendulum/figures/ex_dense_v_sparse_pendulum/"
     stl_env_config = args['config_path'] + "ex_dense_v_sparse_pendulum.yaml"
     stl_env_config_eval = args['config_path'] + "ex_dense_v_sparse_pendulum_eval.yaml"
 
-    # Shared hyperparameters
-    random_seeds = [1630, 2241, 2320, 2990, 3281, 4930, 5640, 8005, 9348, 9462]
+    # Hyperparameters
+    random_seeds = [1630, 2241, 2320] # , 2990, 3281, 4930, 5640, 8005, 9348, 9462]
     ac_kwargs = dict(hidden_sizes=(64, 64,))
     steps_per_epoch = 4000
-    epochs = 100 # SAC & TD3 learn in ~10epochs but PPO & VPG require ~100
+    epochs = 100
     gamma = 0.99  
     clip_ratio = 0.2
     pi_lr = 3e-4
@@ -195,87 +192,98 @@ if __name__ == "__main__":
     num_evals = args['num_evals']
 
     # Experiment names for plotting
-    ppo_name = "ppo"
-    sac_name = "sac"
-    td3_name = "td3"
-    vpg_name = "vpg"
-    plot_legend = [ppo_name, sac_name, td3_name] #, vpg_name]
+    exp1_name = "baseline"
+    exp2_name = "sparse"
+    exp3_name = "dense"
+    plot_legend = [exp1_name, exp2_name, exp3_name]
 
     if args['train_all']:
         # Overwrite the default false values to train all the experiments
-        args['ppo'] = True
-        args['sac'] = True
-        args['td3'] = True
-        # args['vpg'] = True
+        args['baseline'] = True
+        args['sparse'] = True
+        args['dense'] = True
 
-    # ppo performance
-    if args['ppo']:
+    # Baseline performance
+    if args['baseline']:
         for i in range(len(random_seeds)):
-            env_fn = partial(stlgym.make, stl_env_config)
-            test_env_fn = partial(stlgym.make, stl_env_config_eval)
-            log_dest = log_directory + "ppo/rand_seed_" + str(random_seeds[i])
-            logger_kwargs = dict(output_dir=log_dest, exp_name=ppo_name)
-            print(f"Training PPO, random seed: {random_seeds[i]}...")
-            ppo(env_fn, test_env_fn=test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
+            env_fn = partial(gym.make, 'Pendulum-v1')
+            test_env_fn = partial(gym.make, 'Pendulum-v1')
+            alt_test_env_fn = partial(stlgym.make, stl_env_config_eval)
+            log_dest = log_directory + "baseline/rand_seed_" + str(random_seeds[i])
+            logger_kwargs = dict(output_dir=log_dest, exp_name=exp1_name)
+            print(f"Training PPO baseline, random seed: {random_seeds[i]}...")
+            ppo(env_fn, test_env_fn=test_env_fn, alt_test_env_fn=alt_test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
                 steps_per_epoch=steps_per_epoch, epochs=epochs, gamma=gamma, clip_ratio=clip_ratio, pi_lr=pi_lr,
-                vf_lr=vf_lr, train_pi_iters=train_pi_iters, train_v_iters=train_v_iters, lam=lam, 
-                num_test_episodes=num_test_episodes, 
+                vf_lr=vf_lr, train_pi_iters=train_pi_iters, train_v_iters=train_v_iters, lam=lam, num_test_episodes=num_test_episodes, 
                 max_ep_len=max_ep_len, target_kl=target_kl, logger_kwargs=logger_kwargs, save_freq=save_freq)
+
+            # After the policy is trained, evaluate it for a given number of steps
+            env, get_action = load_policy_and_env(fpath=log_dest, itr='last', deterministic=True)
+            original_env = gym.make('Pendulum-v1')
+            stl_env = stlgym.make(stl_env_config_eval)
+            evaluate_policy_in_2_environments(env1=original_env, env2=stl_env, get_action=get_action, log_dest=log_dest, max_ep_len=200, num_episodes=num_evals)
+
+    # Training with STLGym reward function sparsely-defined
+    if args['sparse']:
+        for i in range(len(random_seeds)):
+            env_fn = partial(stlgym.make, stl_env_config_eval)
+            test_env_fn = partial(gym.make, 'Pendulum-v1')
+            alt_test_env_fn = partial(stlgym.make, stl_env_config_eval)
+            log_dest = log_directory + "sparse/rand_seed_" + str(random_seeds[i])
+            logger_kwargs = dict(output_dir=log_dest, exp_name=exp2_name)
+            print(f"Training PPO sparse, random seed: {random_seeds[i]}...")
+            ppo(env_fn, test_env_fn=test_env_fn, alt_test_env_fn=alt_test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
+                steps_per_epoch=steps_per_epoch, epochs=epochs, gamma=gamma, clip_ratio=clip_ratio, pi_lr=pi_lr,
+                vf_lr=vf_lr, train_pi_iters=train_pi_iters, train_v_iters=train_v_iters, lam=lam, num_test_episodes=num_test_episodes, 
+                max_ep_len=max_ep_len, target_kl=target_kl, logger_kwargs=logger_kwargs, save_freq=save_freq)
+
+            # After the policy is trained, evaluate it for a given number of steps
+            env, get_action = load_policy_and_env(fpath=log_dest, itr='last', deterministic=True)
+            original_env = gym.make('Pendulum-v1')
+            stl_env = stlgym.make(stl_env_config_eval)
+            evaluate_policy_in_2_environments(env1=original_env, env2=stl_env, get_action=get_action, log_dest=log_dest, max_ep_len=200, num_episodes=num_evals)
     
-    # sac performance
-    if args['sac']:
+    # Training with STLGym reward function densely-defined
+    if args['dense']:
         for i in range(len(random_seeds)):
             env_fn = partial(stlgym.make, stl_env_config)
-            test_env_fn = partial(stlgym.make, stl_env_config_eval)
-            log_dest = log_directory + "sac/rand_seed_" + str(random_seeds[i])
-            logger_kwargs = dict(output_dir=log_dest, exp_name=sac_name)
-            print(f"Training SAC, random seed: {random_seeds[i]}...")
-            sac(env_fn, test_env_fn=test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
-                steps_per_epoch=steps_per_epoch, epochs=epochs, replay_size=int(1e6), gamma=gamma, 
-                polyak=0.995, lr=1e-3, alpha=0.2, batch_size=100, start_steps=10000, 
-                update_after=1000, update_every=50, num_test_episodes=num_test_episodes, max_ep_len=max_ep_len, 
-                logger_kwargs=logger_kwargs, save_freq=save_freq)
-    
-    # td3 performance
-    if args['td3']:
-        for i in range(len(random_seeds)):
-            env_fn = partial(stlgym.make, stl_env_config)
-            test_env_fn = partial(stlgym.make, stl_env_config_eval)
-            log_dest = log_directory + "td3/rand_seed_" + str(random_seeds[i])
-            logger_kwargs = dict(output_dir=log_dest, exp_name=td3_name)
-            print(f"Training TD3, random seed: {random_seeds[i]}...")
-            td3(env_fn, test_env_fn=test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
-                steps_per_epoch=steps_per_epoch, epochs=epochs, replay_size=int(1e6), gamma=gamma, 
-                polyak=0.995, pi_lr=1e-3, q_lr=1e-3, batch_size=100, start_steps=10000, 
-                update_after=1000, update_every=50, act_noise=0.1, target_noise=0.2, 
-                noise_clip=0.5, policy_delay=2, num_test_episodes=num_test_episodes, max_ep_len=max_ep_len, 
-                logger_kwargs=logger_kwargs, save_freq=save_freq)
-    
-    # vpg performance
-    if args['vpg']:
-        for i in range(len(random_seeds)):
-            env_fn = partial(stlgym.make, stl_env_config)
-            test_env_fn = partial(stlgym.make, stl_env_config_eval)
-            log_dest = log_directory + "vpg/rand_seed_" + str(random_seeds[i])
-            logger_kwargs = dict(output_dir=log_dest, exp_name=vpg_name)
-            print(f"Training VPG, random seed: {random_seeds[i]}...")
-            vpg(env_fn, test_env_fn=test_env_fn, ac_kwargs=ac_kwargs,  seed=random_seeds[i], 
-                steps_per_epoch=steps_per_epoch, epochs=epochs, gamma=gamma, pi_lr=pi_lr,
-                vf_lr=vf_lr, train_v_iters=train_v_iters, lam=0.97, num_test_episodes=num_test_episodes, 
-                max_ep_len=max_ep_len,
-                logger_kwargs=logger_kwargs, save_freq=save_freq)
+            test_env_fn = partial(gym.make, 'Pendulum-v1')
+            alt_test_env_fn = partial(stlgym.make, stl_env_config_eval)
+            log_dest = log_directory + "dense/rand_seed_" + str(random_seeds[i])
+            logger_kwargs = dict(output_dir=log_dest, exp_name=exp2_name)
+            print(f"Training PPO dense, random seed: {random_seeds[i]}...")
+            ppo(env_fn, test_env_fn=test_env_fn, alt_test_env_fn=alt_test_env_fn, ac_kwargs=ac_kwargs, seed=random_seeds[i], 
+                steps_per_epoch=steps_per_epoch, epochs=epochs, gamma=gamma, clip_ratio=clip_ratio, pi_lr=pi_lr,
+                vf_lr=vf_lr, train_pi_iters=train_pi_iters, train_v_iters=train_v_iters, lam=lam, num_test_episodes=num_test_episodes, 
+                max_ep_len=max_ep_len, target_kl=target_kl, logger_kwargs=logger_kwargs, save_freq=save_freq)
+
+            # After the policy is trained, evaluate it for a given number of steps
+            env, get_action = load_policy_and_env(fpath=log_dest, itr='last', deterministic=True)
+            original_env = gym.make('Pendulum-v1')
+            stl_env = stlgym.make(stl_env_config_eval)
+            evaluate_policy_in_2_environments(env1=original_env, env2=stl_env, get_action=get_action, log_dest=log_dest, max_ep_len=200, num_episodes=num_evals)
 
     if args['plot_all']:
         log_dirs = []
         for i in range(len(plot_legend)):
             log_dirs.append(log_directory + plot_legend[i])
-        save_name = fig_directory + "sample_complexity_stl.png"
+        save_name = fig_directory + "sample_complexity_baseline.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageTestEpRet'],
                 #    ylim=(0, 1100), 
                    count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
-        save_name = fig_directory + "episode_length_stl.png"
+        save_name = fig_directory + "sample_complexity_stl.png"
+        make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageAltTestEpRet'],
+                #    ylim=(0, 1100), 
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
+
+        save_name = fig_directory + "episode_length_baseline.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['TestEpLen'],
+                #    ylim=(0, 240), 
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
+
+        save_name = fig_directory + "episode_length_stl.png"
+        make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AltTestEpLen'],
                 #    ylim=(0, 240), 
                    count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
     
