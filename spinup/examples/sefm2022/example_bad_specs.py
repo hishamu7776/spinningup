@@ -132,7 +132,7 @@ def plot_trajectories_pendulum(trajectories1, save_name):
     """ Plot individual trajectory lines """
     for i in range(len(trajectories1)-1):
         theta1 = trajectories1[i]
-        axis.plot(theta1, np.linspace(0, len(theta1)-1, len(theta1)), 'b')
+        axis.plot(theta1, np.linspace(0, len(theta1)-1, len(theta1))) #, 'b')
     theta1 = trajectories1[-1]
     axis.plot(theta1, np.linspace(0, len(theta1)-1, len(theta1)), 'b')
     """"""
