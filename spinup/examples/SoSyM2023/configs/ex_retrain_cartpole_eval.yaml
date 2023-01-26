@@ -1,0 +1,27 @@
+env_name: CartPole-v0
+dense: False
+constants:
+    - name: angle_stability_thresh
+      type: float
+      value: 0.0872665
+    - name: pos_stability_thresh
+      type: float
+      value: 0.5
+variables:
+    - name: pos
+      type: float
+      location: obs
+      identifier: 0
+    - name: angle
+      type: float
+      location: obs
+      identifier: 2
+specifications:
+    - name: angle_stability
+      descriptor: The cart and pole stabilize so that the pole is within |angle| <= 5 degrees. Weight should make max 1.
+      spec: angle_stability = eventually(always(abs(angle) <= angle_stability_thresh))
+      weight: 11.45915099
+    - name: cart_stability
+      descriptor: The cart and pole stabilize so that the cart is within |pos| <= 0.5. Weight should make max 1.
+      spec: cart_stability = eventually(always(abs(pos) <= pos_stability_thresh))
+      weight: 2.0

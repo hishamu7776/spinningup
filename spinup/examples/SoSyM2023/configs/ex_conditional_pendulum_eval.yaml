@@ -1,0 +1,28 @@
+env_name: Pendulum-v1
+horizon: 10
+dense: False
+constants:
+    - name: swingup_thresh
+      type: float
+      value: 0.1
+    - name: stayup_thresh
+      type: float
+      value:  0.5
+variables:
+    - name: omega
+      type: float
+      location: obs
+      identifier: 2
+    - name: theta
+      type: float
+      location: info
+      identifier: theta
+specifications:
+    - name: swingup
+      descriptor: The pendulum will swingup between +-0.1.
+      spec: swingup = eventually(abs(theta) <= swingup_thresh)
+      weight: 10.0
+    - name: stayup
+      descriptor: If the pendulum swings up then it will stay up between +-0.5.
+      spec: stayup = always(abs(theta) <= swingup_thresh) implies always(abs(theta) <= stayup_thresh)
+      weight: 2.0

@@ -1,0 +1,30 @@
+# This specification example comes from https://github.com/CPS-VIDA/simple-bhnr/blob/master/src/safe_rl/specs/bipedal_walker.py
+env_name: BipedalWalker-v3
+dense: True
+horizon: 20
+constants:
+    - name: hull_angle_max
+      type: float
+      value: 0.2
+variables:
+    - name: vel_x
+      type: float
+      location: obs
+      identifier: 2
+    - name: hull_angle
+      type: float
+      location: obs
+      identifier: 0
+    - name: height
+      type: float
+      location: obs
+      identifier: 1
+specifications:
+    - name: forward
+      descriptor: The walker will move forward
+      spec: forward = eventually[0:15](vel_x > 0.5)
+      weight: 1.0
+    - name: hull_rotation_limit
+      descriptor: Reduce hull angular velocity
+      spec: hull_rotation_limit = always[0:20](abs(hull_angle) < 1)
+      weight: 1.0

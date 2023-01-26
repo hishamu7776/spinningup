@@ -89,10 +89,10 @@ class GAEBuffer:
 
 
 
-def trpo(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0, 
+def trpo(env_fn, test_env_fn=None, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0, 
          steps_per_epoch=4000, epochs=50, gamma=0.99, delta=0.01, vf_lr=1e-3,
          train_v_iters=80, damping_coeff=0.1, cg_iters=10, backtrack_iters=10, 
-         backtrack_coeff=0.8, lam=0.97, max_ep_len=1000, logger_kwargs=dict(), 
+         backtrack_coeff=0.8, lam=0.97, num_test_episodes=10, max_ep_len=1000, logger_kwargs=dict(), 
          save_freq=10, algo='trpo'):
     """
     Trust Region Policy Optimization 
@@ -101,6 +101,9 @@ def trpo(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
 
     Args:
         env_fn : A function which creates a copy of the environment.
+            The environment must satisfy the OpenAI Gym API.
+        
+        test_env_fn: (optional) A function which creates a copy of the environment for testing the agent.
             The environment must satisfy the OpenAI Gym API.
 
         actor_critic: A function which takes in placeholder symbols 
@@ -183,7 +186,10 @@ def trpo(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
 
         lam (float): Lambda for GAE-Lambda. (Always between 0 and 1,
             close to 1.)
-
+        
+        num_test_episodes (int): Number of episodes to test the deterministic
+            policy at the end of each epoch.
+        
         max_ep_len (int): Maximum length of trajectory / episode / rollout.
 
         logger_kwargs (dict): Keyword args for EpochLogger.
@@ -206,6 +212,11 @@ def trpo(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
     env = env_fn()
     obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape
+
+    ###################################################################################################################
+    # Additional environments for better testing/evaluation
+    test_env = env_fn() if test_env_fn is None else test_env_fn()
+    ###################################################################################################################
     
     # Share information about action space with policy architecture
     ac_kwargs['action_space'] = env.action_space
@@ -362,11 +373,31 @@ def trpo(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
         # Perform TRPO or NPG update!
         update()
 
+        # Test the performance of the deterministic version of the agent.
+        for j in range(num_test_episodes):
+            o, d, ep_ret, ep_len = test_env.reset(), False, 0, 0
+            while not (d or (ep_len == max_ep_len)):
+                # Take deterministic actions at test time 
+                agent_outs = sess.run(get_action_ops, feed_dict={x_ph: o.reshape(1,-1)})
+                a, v_t, logp_t, info_t = agent_outs[0][0], agent_outs[1], agent_outs[2], agent_outs[3:]
+                o, r, d, _ = test_env.step(a)
+                ep_ret += r
+                ep_len += 1
+            if 'success' in info_t:
+                success = 1 if info_t['success'] else 0
+                logger.store(TestEpRet=ep_ret, TestEpLen=ep_len, Success=success)
+            else:
+                logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
+
         # Log info about epoch
         logger.log_tabular('Epoch', epoch)
         logger.log_tabular('EpRet', with_min_and_max=True)
+        logger.log_tabular('TestEpRet', with_min_and_max=True)
         logger.log_tabular('EpLen', average_only=True)
+        logger.log_tabular('TestEpLen', average_only=True)
         logger.log_tabular('VVals', with_min_and_max=True)
+        if 'Success' in logger.epoch_dict:
+            logger.log_tabular('Success', average_only=True)
         logger.log_tabular('TotalEnvInteracts', (epoch+1)*steps_per_epoch)
         logger.log_tabular('LossPi', average_only=True)
         logger.log_tabular('LossV', average_only=True)
