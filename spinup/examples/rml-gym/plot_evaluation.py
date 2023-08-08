@@ -22,7 +22,7 @@ from environments import *
 
 
 # Function for plotting evaluation traces
-def do_rollouts(num_rollouts, policy1, policy2, policy3):
+def do_rollouts(num_rollouts, policy1, policy2, policy3, policy4):
     """
     TODO
     """
@@ -30,6 +30,7 @@ def do_rollouts(num_rollouts, policy1, policy2, policy3):
     trajectories1 = []
     trajectories2 = []
     trajectories3 = []
+    trajectories4 = []
     for i in range(num_rollouts):
         # Rollout policy1
         done = False
@@ -69,9 +70,22 @@ def do_rollouts(num_rollouts, policy1, policy2, policy3):
             theta = info['theta']
         trajectories3.append(history3)
 
-    return trajectories1, trajectories2, trajectories3
+        # Rollout policy4
+        done = False
+        history4 = []
+        env.reset()
+        env.state = np.array([init_theta, init_theta_dot])
+        o = np.array([np.cos(init_theta), np.sin(init_theta), init_theta_dot])
+        theta = init_theta
+        while not done:
+            history4.append(theta)
+            o, r, done, info = env.step(policy4(o))
+            theta = info['theta']
+        trajectories4.append(history4)
 
-def plot_trajectories(trajectories1, trajectories2, trajectories3, save_name):
+    return trajectories1, trajectories2, trajectories3,trajectories4
+
+def plot_trajectories(trajectories1, trajectories2, trajectories3, trajectories4, save_name):
     """
     TODO: trajectories1 is baseline
     trajectories2 is retrained
@@ -88,12 +102,16 @@ def plot_trajectories(trajectories1, trajectories2, trajectories3, save_name):
         axis.plot(theta2, np.linspace(0, len(theta2)-1, len(theta2)), 'g--')
         theta3 = trajectories3[i]
         axis.plot(theta3, np.linspace(0, len(theta3)-1, len(theta3)), 'r-')
+        theta4 = trajectories4[i]
+        axis.plot(theta4, np.linspace(0, len(theta4)-1, len(theta4)), 'c')
     theta1 = trajectories1[-1]
     axis.plot(theta1, np.linspace(0, len(theta1)-1, len(theta1)), 'b', label='baseline')
     theta2 = trajectories2[-1]
     axis.plot(theta2, np.linspace(0, len(theta2)-1, len(theta2)), 'g--', label='sparse')
     theta3 = trajectories3[-1]
     axis.plot(theta3, np.linspace(0, len(theta3)-1, len(theta3)), 'r-', label='dense')
+    theta4 = trajectories4[-1]
+    axis.plot(theta4, np.linspace(0, len(theta4)-1, len(theta4)), 'c', label='rml')
     """"""
 
     """ Add boundaries to plots """

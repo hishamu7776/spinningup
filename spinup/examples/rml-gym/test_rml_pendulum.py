@@ -49,6 +49,7 @@ if __name__ == "__main__":
     parser.add_argument('--dense', help="TODO", action="store_true")
     parser.add_argument('--rml', help="TODO", action="store_true")
     parser.add_argument('--config-path', help='Path to config folder with specification.', type=str, default="./configs/")
+    parser.add_argument('--random-seed', help='Provide seed for algorithm.', type=int, default=0)
     parser.add_argument('--plot-all', help="Generate plots for all experimental cases.", action="store_true")
     parser.add_argument('--plot-traces', help="TODO", action="store_true")
     parser.add_argument('--table', help="Generate text for latex table comparing final performance of all experimental cases.", action="store_true")
@@ -79,11 +80,13 @@ if __name__ == "__main__":
     stl_env_config_sparse = args['config_path'] + "stl_sparse_pendulum_keep_up.yaml"
     rml_env_config = args['config_path'] + "rml_pendulum_keep_up.yaml"
     
-        # Hyperparameters
-    random_seeds = [1630, 2241, 2320] # , 2990, 3281, 4930, 5640, 8005, 9348, 9462]
+    # Hyperparameters
+    random_seeds = [1630, 2241, 2320] # 1630, 2241, 2320, 2990, 3281, 4930, 5640, 8005, 9348, 9462]
+    if args['random_seed'] != 0:
+        random_seeds = [args['random_seed']]
     ac_kwargs = dict(hidden_sizes=(64, 64,))
-    steps_per_epoch = 1000
-    epochs = 10
+    steps_per_epoch = 4000
+    epochs = 100
     gamma = 0.99  
     clip_ratio = 0.2
     pi_lr = 3e-4
@@ -101,16 +104,17 @@ if __name__ == "__main__":
     exp1_name = "baseline"
     exp2_name = "sparse"
     exp3_name = "dense"
-    exp4_name = "RML"
+    exp4_name = "rml"
 
-    plot_legend = [exp1_name, exp2_name, exp3_name]
-
+    plot_legend = [exp1_name, exp2_name, exp3_name, exp4_name]
+    
     if args['train_all']:
         # Overwrite the default false values to train all the experiments
         args['baseline'] = True
         args['sparse'] = True
         args['dense'] = True
         args['rml'] = True
+
 
     # Baseline performance
     if args['baseline']:
@@ -200,22 +204,22 @@ if __name__ == "__main__":
         save_name = fig_directory + "sample_complexity_baseline.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageTestEpRet'],
                 #    ylim=(0, 1100), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
         save_name = fig_directory + "sample_complexity_stl.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageAltTestEpRet'],
                 #    ylim=(0, 1100), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
         save_name = fig_directory + "episode_length_baseline.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['TestEpLen'],
                 #    ylim=(0, 240), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
         save_name = fig_directory + "episode_length_stl.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AltTestEpLen'],
                 #    ylim=(0, 240), 
-                   count=False, smooth=1, select=None, exclude=None, estimator='mean')
+                   count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
     
     if args['plot_traces']:
         # Ensure the figure directory exists
@@ -227,13 +231,15 @@ if __name__ == "__main__":
             log_dest_baseline = log_directory + "baseline/rand_seed_" + str(i)
             log_dest_sparse = log_directory + "sparse/rand_seed_" + str(i)
             log_dest_dense = log_directory + "dense/rand_seed_" + str(i)
-            save_name = fig_directory + "dense_v_sparse_pendulum_rand_seed_" + str(i) + "_traces.png"
+            log_dest_rml = log_directory + "rml/rand_seed_" + str(i)
+            save_name = fig_directory + "rml_ppo_rand_seed_" + str(i) + "_traces.png"
             _, get_action1 = load_policy_and_env(fpath=log_dest_baseline, itr='last', deterministic=True)
             _, get_action2 = load_policy_and_env(fpath=log_dest_sparse, itr='last', deterministic=True)
             _, get_action3 = load_policy_and_env(fpath=log_dest_dense, itr='last', deterministic=True)
+            _, get_action4 = load_policy_and_env(fpath=log_dest_rml, itr='last', deterministic=True)
             env = gym.make('Pendulum-v1')
-            trajectories1, trajectories2, trajectories3 = do_rollouts(num_evals, get_action1, get_action2, get_action3)
-            plot_trajectories(trajectories1, trajectories2, trajectories3, save_name)
+            trajectories1, trajectories2, trajectories3,trajectories4 = do_rollouts(num_evals, get_action1, get_action2, get_action3,get_action4)
+            plot_trajectories(trajectories1, trajectories2, trajectories3,trajectories4, save_name)
 
     if args['table']:
         log_dirs = []
