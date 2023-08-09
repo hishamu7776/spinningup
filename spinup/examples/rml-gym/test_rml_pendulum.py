@@ -79,6 +79,7 @@ if __name__ == "__main__":
     stl_env_config_dense = args['config_path'] + "stl_dense_pendulum_keep_up.yaml"
     stl_env_config_sparse = args['config_path'] + "stl_sparse_pendulum_keep_up.yaml"
     rml_env_config = args['config_path'] + "rml_pendulum_keep_up.yaml"
+    rml_env_config_eval = args['config_path'] + "rml_pendulum_keep_up_eval.yaml"
     
     # Hyperparameters
     random_seeds = [1630, 2241, 2320] # 1630, 2241, 2320, 2990, 3281, 4930, 5640, 8005, 9348, 9462]
@@ -121,7 +122,7 @@ if __name__ == "__main__":
         for i in range(len(random_seeds)):
             env_fn = partial(gym.make, 'Pendulum-v1')
             test_env_fn = partial(gym.make, 'Pendulum-v1')
-            alt_test_env_fn = partial(stlgym.make, stl_env_config_sparse)
+            alt_test_env_fn = partial(rmlgym.make, rml_env_config)
             log_dest = log_directory + "baseline/rand_seed_" + str(random_seeds[i])
             logger_kwargs = dict(output_dir=log_dest, exp_name=exp1_name)
             print(f"Training PPO baseline, random seed: {random_seeds[i]}...")
@@ -133,7 +134,7 @@ if __name__ == "__main__":
             # After the policy is trained, evaluate it for a given number of steps
             env, get_action = load_policy_and_env(fpath=log_dest, itr='last', deterministic=True)
             original_env = gym.make('Pendulum-v1')
-            stl_env = stlgym.make(stl_env_config_sparse)
+            stl_env = stlgym.make(stl_env_config_dense)
             evaluate_policy_in_2_environments(env1=original_env, env2=stl_env, get_action=get_action, log_dest=log_dest, max_ep_len=200, num_episodes=num_evals)
     
     # Training with STLGym reward function sparsely-defined
@@ -141,7 +142,7 @@ if __name__ == "__main__":
         for i in range(len(random_seeds)):
             env_fn = partial(stlgym.make, stl_env_config_sparse)
             test_env_fn = partial(gym.make, 'Pendulum-v1')
-            alt_test_env_fn = partial(stlgym.make, stl_env_config_sparse)
+            alt_test_env_fn = partial(rmlgym.make, rml_env_config)
             log_dest = log_directory + "sparse/rand_seed_" + str(random_seeds[i])
             logger_kwargs = dict(output_dir=log_dest, exp_name=exp2_name)
             print(f"Training PPO sparse, random seed: {random_seeds[i]}...")
@@ -161,7 +162,7 @@ if __name__ == "__main__":
         for i in range(len(random_seeds)):
             env_fn = partial(stlgym.make, stl_env_config_dense)
             test_env_fn = partial(gym.make, 'Pendulum-v1')
-            alt_test_env_fn = partial(stlgym.make, stl_env_config_sparse)
+            alt_test_env_fn = partial(rmlgym.make, rml_env_config)
             log_dest = log_directory + "dense/rand_seed_" + str(random_seeds[i])
             logger_kwargs = dict(output_dir=log_dest, exp_name=exp3_name)
             print(f"Training PPO dense, random seed: {random_seeds[i]}...")
@@ -181,7 +182,7 @@ if __name__ == "__main__":
         for i in range(len(random_seeds)):
             env_fn = partial(rmlgym.make, rml_env_config)
             test_env_fn = partial(gym.make, 'Pendulum-v1')
-            alt_test_env_fn = partial(stlgym.make, stl_env_config_sparse)
+            alt_test_env_fn = partial(rmlgym.make, rml_env_config_eval)
             log_dest = log_directory + "rml/rand_seed_" + str(random_seeds[i])
             logger_kwargs = dict(output_dir=log_dest, exp_name=exp4_name)
             print(f"Training PPO dense, random seed: {random_seeds[i]}...")
@@ -206,7 +207,7 @@ if __name__ == "__main__":
                 #    ylim=(0, 1100), 
                    count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
-        save_name = fig_directory + "sample_complexity_stl.png"
+        save_name = fig_directory + "sample_complexity_rml.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AverageAltTestEpRet'],
                 #    ylim=(0, 1100), 
                    count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
@@ -216,10 +217,11 @@ if __name__ == "__main__":
                 #    ylim=(0, 240), 
                    count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
 
-        save_name = fig_directory + "episode_length_stl.png"
+        save_name = fig_directory + "episode_length_rml.png"
         make_plots(log_dirs, legend=plot_legend, xaxis='TotalEnvInteracts', values=['AltTestEpLen'],
                 #    ylim=(0, 240), 
                    count=False, smooth=1, select=None, exclude=None, estimator='mean', save_name=save_name)
+        
     
     if args['plot_traces']:
         # Ensure the figure directory exists
