@@ -1,0 +1,28 @@
+env_name: CartPole-v0
+horizon: 1
+dense: False
+constants:
+    - name: angle_max_thresh
+      type: float
+      value: 0.0872665
+    - name: pos_max_thresh
+      type: float
+      value: 0.5
+variables:
+    - name: pos
+      type: float
+      location: obs
+      identifier: 0
+    - name: angle
+      type: float
+      location: obs
+      identifier: 2
+specifications:
+    - name: angle_bounds
+      descriptor: The cart and pole stabilize so that the pole is within |angle| <= 12 degrees. Weight should make max 1.
+      spec: angle_bounds = always(abs(angle) <= angle_max_thresh)
+      weight: 1.0
+    - name: cart_bounds
+      descriptor: The cart and pole stabilize so that the cart is within |pos| <= 2.4. Weight should make max 1.
+      spec: cart_bounds = always(abs(pos) <= pos_max_thresh)
+      weight: 1.0
