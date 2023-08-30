@@ -248,10 +248,10 @@ def plot_trajectories_cartpole(trajectories1, trajectories2, trajectories3, traj
     axis[0].legend(loc='lower right', fontsize=12)
 
     # Angle
-    axis[1].axvspan(-0.48, -0.20944, color='red', alpha=0.2)
-    axis[1].axvspan(0.20944, 0.48, color='red', alpha=0.2)
+    axis[1].axvspan(-0.48,  -0.0872665, color='red', alpha=0.2)
+    axis[1].axvspan(0.0872665, 0.48, color='red', alpha=0.2)
     axis[1].add_patch(Rectangle((-0.48, 199), 0.94, 6, facecolor=mcolors.cnames['lime'], alpha=0.5, fill=True))
-    # axis[1].add_patch(Rectangle((-0.48, 499), 0.94, 6, facecolor=mcolors.cnames['lime'], alpha=0.5, fill=True))
+    axis[1].add_patch(Rectangle((-0.48, 499), 0.94, 6, facecolor=mcolors.cnames['lime'], alpha=0.5, fill=True))
     axis[1].set_title("Angle Trajectories", **csfont)
     axis[1].set_ylabel("Time", **csfont)
     axis[1].set_xlabel("Angle (radians)", **csfont)
