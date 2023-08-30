@@ -103,11 +103,11 @@ if __name__ == "__main__":
 
     # Experiment names for plotting
     exp1_name = "baseline"
-    ##exp2_name = "sparse"
+    exp2_name = "sparse"
     exp3_name = "dense"
     exp4_name = "rml"
 
-    plot_legend = [exp1_name, exp3_name, exp4_name]#, exp2_name
+    plot_legend = [exp1_name, exp2_name, exp3_name, exp4_name]
     
     if args['train_all']:
         # Overwrite the default false values to train all the experiments
