@@ -239,7 +239,7 @@ if __name__ == "__main__":
             _, get_action2 = load_policy_and_env(fpath=log_dest_sparse, itr='last', deterministic=True)
             _, get_action3 = load_policy_and_env(fpath=log_dest_dense, itr='last', deterministic=True)
             _, get_action4 = load_policy_and_env(fpath=log_dest_rml, itr='last', deterministic=True)
-            env = gym.make('Pendulum-v1')
+            env = gym.make('CartPole-v0')
             trajectories1, trajectories2, trajectories3,trajectories4 = do_rollout_cartpole(num_evals, get_action1, get_action2, get_action3,get_action4)
             plot_trajectories_cartpole(trajectories1, trajectories2, trajectories3,trajectories4, save_name)
 
