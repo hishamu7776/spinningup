@@ -82,7 +82,7 @@ if __name__ == "__main__":
     rml_env_config_eval = args['config_path'] + "rml_cartpole_eval.yaml"
     
     # Hyperparameters
-    random_seeds = [1630, 2241, 2320] # 1630, 2241, 2320, 2990, 3281, 4930, 5640, 8005, 9348, 9462]
+    random_seeds = [1630, 2241, 2320, 4930] # 1630, 2241, 2320, 2990, 3281, 4930, 5640, 8005, 9348, 9462]
     if args['random_seed'] != 0:
         random_seeds = [args['random_seed']]
     ac_kwargs = dict(hidden_sizes=(64, 64,))
